@@ -665,6 +665,7 @@ dependencies = [
  "pyo3",
  "rayon",
  "rupdf-core",
+ "serde_json",
 ]
 
 [[package]]
