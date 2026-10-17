@@ -313,6 +313,41 @@ impl PyDocument {
             .collect())
     }
 
+    /// Returns the Table of Contents as a list of `[level, title, page]` lists (1-based).
+    #[pyo3(signature = (simple=true))]
+    pub fn get_toc<'py>(&self, py: Python<'py>, simple: bool) -> PyResult<Vec<Bound<'py, PyList>>> {
+        let _ = simple;
+        let entries = self.with_doc(|doc| Ok(doc.get_toc()))?;
+        let mut out = Vec::with_capacity(entries.len());
+        for e in entries {
+            let item = PyList::empty(py);
+            item.append(e.level)?;
+            item.append(e.title)?;
+            item.append(e.page)?;
+            out.push(item);
+        }
+        Ok(out)
+    }
+
+    /// Replaces the document's Table of Contents (`/Outlines`) with `toc` (`[[level, title, page], ...]`).
+    pub fn set_toc(&self, toc: &Bound<'_, PyAny>) -> PyResult<usize> {
+        let mut entries = Vec::new();
+        for row in toc.try_iter()? {
+            let row = row?;
+            let items: Vec<Bound<'_, PyAny>> = row.try_iter()?.collect::<PyResult<Vec<_>>>()?;
+            if items.len() < 3 {
+                return Err(PyValueError::new_err(
+                    "Each TOC entry must have at least 3 elements: [level, title, page]",
+                ));
+            }
+            let level: usize = items[0].extract()?;
+            let title: String = items[1].extract()?;
+            let page: usize = items[2].extract()?;
+            entries.push(rupdf_core::TocEntry { level, title, page });
+        }
+        self.with_doc_mut(|doc| doc.set_toc(&entries).map_err(to_py_err))
+    }
+
     /// Closes the document and releases underlying memory.
     pub fn close(&self) -> PyResult<()> {
         let mut guard = self

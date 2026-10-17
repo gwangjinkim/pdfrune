@@ -129,9 +129,10 @@ impl Document {
         Ok(doc)
     }
 
-    /// Allocates the next available object number in `self.objects`.
-    pub fn allocate_object_id(&self) -> ObjectId {
+    /// Allocates and reserves the next available object number in `self.objects`.
+    pub fn allocate_object_id(&mut self) -> ObjectId {
         let next_num = self.objects.keys().next_back().copied().unwrap_or(0) + 1;
+        self.objects.insert(next_num, PdfObject::Null);
         (next_num, 0)
     }
 
@@ -627,6 +628,42 @@ impl Document {
     /// Searches across all pages in parallel using SIMD substring or regex matching.
     pub fn search_all(&self, query: &str, use_regex: bool) -> Result<Vec<(usize, Vec<Rect>)>> {
         crate::advanced::search_document(self, query, use_regex)
+    }
+
+    /// Extracts the Table of Contents (`/Outlines`) hierarchy.
+    pub fn get_toc(&self) -> Vec<crate::nav::TocEntry> {
+        crate::nav::get_toc(self)
+    }
+
+    /// Sets the Table of Contents (`/Outlines`) hierarchy.
+    pub fn set_toc(&mut self, entries: &[crate::nav::TocEntry]) -> Result<usize> {
+        crate::nav::set_toc(self, entries)
+    }
+
+    /// Returns all hyperlink annotations on `page_index`.
+    pub fn get_page_links(&self, page_index: usize) -> Result<Vec<crate::nav::LinkEntry>> {
+        crate::nav::get_page_links(self, page_index)
+    }
+
+    /// Inserts a hyperlink annotation on `page_index`.
+    pub fn insert_page_link(
+        &mut self,
+        page_index: usize,
+        from: Rect,
+        uri: Option<&str>,
+        target_page: Option<usize>,
+    ) -> Result<u32> {
+        crate::nav::insert_page_link(self, page_index, from, uri, target_page)
+    }
+
+    /// Deletes a hyperlink annotation from `page_index`.
+    pub fn delete_page_link(
+        &mut self,
+        page_index: usize,
+        xref: Option<u32>,
+        from: Option<Rect>,
+    ) -> Result<()> {
+        crate::nav::delete_page_link(self, page_index, xref, from)
     }
 }
 

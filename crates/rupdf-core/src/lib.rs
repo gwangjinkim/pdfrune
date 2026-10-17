@@ -3,6 +3,7 @@ pub mod document;
 pub mod error;
 pub mod geometry;
 pub mod mutate;
+pub mod nav;
 pub mod page;
 pub mod parser;
 pub mod render;
@@ -16,6 +17,9 @@ pub use document::Document;
 pub use error::{Result, RupdfError};
 pub use geometry::{Matrix, Point, Rect};
 pub use mutate::{merge_documents, save_document, serialize_document};
+pub use nav::{
+    delete_page_link, get_page_links, get_toc, insert_page_link, set_toc, LinkEntry, TocEntry,
+};
 pub use page::Page;
 pub use render::{render_page, render_page_svg, Pixmap};
 pub use text::{PageLayout, TextBlock, TextLine, TextWord};

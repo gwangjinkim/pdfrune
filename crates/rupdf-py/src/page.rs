@@ -319,7 +319,79 @@ impl PyPage {
         self.to_svg(py)
     }
 
+    /// Returns all hyperlinks on the page as a list of dictionaries (`kind`, `from`, `uri`, `page`, `xref`).
+    pub fn get_links<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> PyResult<Vec<Bound<'py, pyo3::types::PyDict>>> {
+        let links =
+            self.with_doc(|doc, _| doc.get_page_links(self.page_index).map_err(to_py_err))?;
+        let mut out = Vec::with_capacity(links.len());
+        for l in links {
+            let d = pyo3::types::PyDict::new(py);
+            d.set_item("xref", l.xref)?;
+            d.set_item("kind", l.kind)?;
+            d.set_item("from", PyRect { inner: l.from })?;
+            if let Some(u) = l.uri {
+                d.set_item("uri", u)?;
+            }
+            if let Some(p) = l.page {
+                d.set_item("page", p)?;
+            }
+            out.push(d);
+        }
+        Ok(out)
+    }
+
+    /// Inserts a hyperlink dictionary (`{"from": Rect, "uri": "..."}` or `{"from": Rect, "page": 1}`) onto the page.
+    pub fn insert_link(&self, link_dict: &Bound<'_, pyo3::types::PyDict>) -> PyResult<u32> {
+        let from_obj = link_dict.get_item("from")?.ok_or_else(|| {
+            pyo3::exceptions::PyValueError::new_err("link_dict missing 'from' Rect")
+        })?;
+        let from_rect = extract_rect(&from_obj)?;
+        let uri: Option<String> = match link_dict.get_item("uri")? {
+            Some(v) if !v.is_none() => Some(v.extract()?),
+            _ => None,
+        };
+        let target_page: Option<usize> = match link_dict.get_item("page")? {
+            Some(v) if !v.is_none() => Some(v.extract()?),
+            _ => None,
+        };
+        self.with_doc_mut(|doc| {
+            doc.insert_page_link(self.page_index, from_rect, uri.as_deref(), target_page)
+                .map_err(to_py_err)
+        })
+    }
+
+    /// Deletes a hyperlink from the page given its `link_dict` (as returned by `get_links()`).
+    pub fn delete_link(&self, link_dict: &Bound<'_, pyo3::types::PyDict>) -> PyResult<()> {
+        let xref: Option<u32> = match link_dict.get_item("xref")? {
+            Some(v) if !v.is_none() => v.extract().ok(),
+            _ => None,
+        };
+        let from_rect: Option<rupdf_core::Rect> = match link_dict.get_item("from")? {
+            Some(v) if !v.is_none() => extract_rect(&v).ok(),
+            _ => None,
+        };
+        self.with_doc_mut(|doc| {
+            doc.delete_page_link(self.page_index, xref, from_rect)
+                .map_err(to_py_err)
+        })
+    }
+
     fn __repr__(&self) -> String {
         format!("Page({})", self.page_index)
     }
+}
+
+pub(crate) fn extract_rect(obj: &Bound<'_, PyAny>) -> PyResult<rupdf_core::Rect> {
+    if let Ok(r) = obj.extract::<PyRect>() {
+        return Ok(r.inner);
+    }
+    if let Ok((x0, y0, x1, y1)) = obj.extract::<(f64, f64, f64, f64)>() {
+        return Ok(rupdf_core::Rect::new(x0, y0, x1, y1));
+    }
+    Err(pyo3::exceptions::PyTypeError::new_err(
+        "Expected Rect or 4-tuple of floats",
+    ))
 }
