@@ -7,6 +7,7 @@ from rupdf._rupdf import (
     Point,
     Rect,
     __version__,
+    merge_pdfs as merge,
     open_document as open,
     version,
 )
@@ -15,6 +16,7 @@ __all__ = [
     "__version__",
     "version",
     "open",
+    "merge",
     "Document",
     "Page",
     "Point",

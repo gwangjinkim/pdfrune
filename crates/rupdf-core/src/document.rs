@@ -569,6 +569,16 @@ impl Document {
         let layout = self.page_layout(page_index)?;
         Ok(layout.search(needle))
     }
+
+    /// Serializes this document to PDF bytes.
+    pub fn to_bytes(&self, deflate: bool) -> Result<Vec<u8>> {
+        crate::mutate::serialize_document(self, deflate)
+    }
+
+    /// Saves this document to a filesystem path.
+    pub fn save<P: AsRef<Path>>(&self, path: P, deflate: bool) -> Result<()> {
+        crate::mutate::save_document(self, path, deflate)
+    }
 }
 
 impl Default for Document {
