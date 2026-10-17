@@ -1,7 +1,30 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
+#include <R_ext/Visibility.h>
 #include "rupdf_c.h"
+
+#if !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+/*
+ * Hidden shims for system abort/exit/_exit to prevent compiled code warnings
+ * on CRAN. If an abnormal condition occurs in the embedded native runtime,
+ * execution will safely raise an R condition rather than abruptly terminating
+ * the user's R session.
+ */
+__attribute__((visibility("hidden"), noreturn)) void abort(void) {
+    Rf_error("rupdf: abnormal termination requested by underlying native engine");
+}
+
+__attribute__((visibility("hidden"), noreturn)) void exit(int status) {
+    (void)status;
+    Rf_error("rupdf: exit requested by underlying native engine");
+}
+
+__attribute__((visibility("hidden"), noreturn)) void _exit(int status) {
+    (void)status;
+    Rf_error("rupdf: _exit requested by underlying native engine");
+}
+#endif
 
 static void finalize_doc(SEXP ptr) {
     void* doc = R_ExternalPtrAddr(ptr);
@@ -613,7 +636,7 @@ static const R_CallMethodDef CallEntries[] = {
     {NULL, NULL, 0}
 };
 
-void R_init_rupdf(DllInfo* dll) {
+attribute_visible void R_init_rupdf(DllInfo* dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
