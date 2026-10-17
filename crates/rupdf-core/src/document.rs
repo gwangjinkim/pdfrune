@@ -579,6 +579,16 @@ impl Document {
     pub fn save<P: AsRef<Path>>(&self, path: P, deflate: bool) -> Result<()> {
         crate::mutate::save_document(self, path, deflate)
     }
+
+    /// Rasterizes `page_index` at `dpi` into a `Pixmap` (RGBA8888).
+    pub fn render_page(&self, page_index: usize, dpi: f64) -> Result<crate::render::Pixmap> {
+        crate::render::render_page(self, page_index, dpi)
+    }
+
+    /// Exports `page_index` to a vector SVG string.
+    pub fn render_page_svg(&self, page_index: usize) -> Result<String> {
+        crate::render::render_page_svg(self, page_index)
+    }
 }
 
 impl Default for Document {

@@ -4,6 +4,7 @@ pub mod geometry;
 pub mod mutate;
 pub mod page;
 pub mod parser;
+pub mod render;
 pub mod text;
 
 pub use document::Document;
@@ -11,6 +12,7 @@ pub use error::{Result, RupdfError};
 pub use geometry::{Matrix, Point, Rect};
 pub use mutate::{merge_documents, save_document, serialize_document};
 pub use page::Page;
+pub use render::{render_page, render_page_svg, Pixmap};
 pub use text::{PageLayout, TextBlock, TextLine, TextWord};
 
 /// Returns the version of the `rupdf-core` engine.

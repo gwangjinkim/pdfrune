@@ -1,11 +1,13 @@
 pub mod doc;
 pub mod page;
+pub mod pixmap;
 pub mod rect;
 
 use pyo3::prelude::*;
 
 use crate::doc::{merge_pdfs, open_document, PyDocument};
 use crate::page::PyPage;
+use crate::pixmap::PyPixmap;
 use crate::rect::{PyMatrix, PyPoint, PyRect};
 
 /// Returns the version of the underlying Rust engine.
@@ -24,6 +26,7 @@ fn _rupdf(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPoint>()?;
     m.add_class::<PyRect>()?;
     m.add_class::<PyMatrix>()?;
+    m.add_class::<PyPixmap>()?;
     m.add_class::<PyPage>()?;
     m.add_class::<PyDocument>()?;
     Ok(())
