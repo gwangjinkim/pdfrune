@@ -9,7 +9,7 @@ description = "Ultra-Fast, Memory-Safe, Permissive PDF Engine in Rust & Python"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT OR Apache-2.0" }
-authors = [{ name = "rupdf contributors" }]
+authors = [{ name = "Gwang-Jin Kim", email = "gwang.jin.kim.phd@gmail.com" }]
 keywords = ["pdf", "rust", "pymupdf", "fitz", "rag", "markdown"]
 classifiers = [
     "Development Status :: 4 - Beta",

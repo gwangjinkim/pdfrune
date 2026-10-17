@@ -1,5 +1,5 @@
 # Rust / Cargo
-/target/
+target/
 **/*.rs.bk
 
 # Python / uv / Maturin
@@ -10,9 +10,15 @@ __pycache__/
 *.so
 *.pyd
 *.dylib
+*.a
+*.o
 .Python
 build/
 dist/
+
+# R / uvr
+.uvr/
+*.tar.gz
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
