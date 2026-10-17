@@ -47,6 +47,8 @@ pub fn render_page(doc: &Document, page_index: usize, dpi: f64) -> Result<Pixmap
     let content_bytes = doc.page_content_bytes(page_index)?;
     if !content_bytes.is_empty() {
         render_vector_ops(
+            doc,
+            &page.resources,
             &content_bytes,
             &mut skia_pix,
             scale,
@@ -55,6 +57,9 @@ pub fn render_page(doc: &Document, page_index: usize, dpi: f64) -> Result<Pixmap
             crop_y0,
         )?;
     }
+
+    // Check for any embedded TrueType (/FontFile2) font bytes in page resources
+    let embedded_ttf = find_first_embedded_ttf(doc, &page.resources);
 
     // Render text spans cleanly onto the raster buffer
     if let Ok(spans) = extract_page_spans(doc, page_index) {
@@ -66,6 +71,11 @@ pub fn render_page(doc: &Document, page_index: usize, dpi: f64) -> Result<Pixmap
             for (ch, char_rect) in &span.chars {
                 if ch.is_whitespace() {
                     continue;
+                }
+                if let Some(ref ttf_bytes) = embedded_ttf {
+                    if draw_ttf_glyph(&mut skia_pix, ttf_bytes, *ch, *char_rect, scale as f32) {
+                        continue;
+                    }
                 }
                 draw_glyph_outline(&mut skia_pix, *ch, *char_rect, scale as f32, &paint);
             }
@@ -79,7 +89,10 @@ pub fn render_page(doc: &Document, page_index: usize, dpi: f64) -> Result<Pixmap
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_vector_ops(
+    doc: &Document,
+    resources: &crate::parser::object::PdfDict,
     content_bytes: &[u8],
     skia_pix: &mut SkiaPixmap,
     scale: f64,
@@ -305,6 +318,30 @@ fn render_vector_ops(
                     b"n" => {
                         pb = PathBuilder::new();
                     }
+                    b"Do" => {
+                        if let Some(name) = operands.last().and_then(PdfObject::as_name) {
+                            if let Some(xobjects) = doc
+                                .resolve_dict_entry(resources, b"XObject")
+                                .and_then(PdfObject::as_dict)
+                            {
+                                if let Some(xobj) = xobjects.get(name) {
+                                    if let Some(stm) = doc.resolve(xobj).as_stream() {
+                                        if let Some((img_w, img_h, rgba)) =
+                                            crate::render::image::decode_image_xobject_to_rgba(stm)
+                                        {
+                                            let (sx0, sy0) =
+                                                to_screen(Point::new(0.0, 0.0), &gs.ctm);
+                                            let (sx1, sy1) =
+                                                to_screen(Point::new(1.0, 1.0), &gs.ctm);
+                                            blit_rgba_scaled(
+                                                skia_pix, &rgba, img_w, img_h, sx0, sy0, sx1, sy1,
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     _ => {}
                 }
                 operands.clear();
@@ -313,6 +350,119 @@ fn render_vector_ops(
     }
 
     Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn blit_rgba_scaled(
+    dst: &mut SkiaPixmap,
+    src_rgba: &[u8],
+    src_w: u32,
+    src_h: u32,
+    sx0: f32,
+    sy0: f32,
+    sx1: f32,
+    sy1: f32,
+) {
+    let left = sx0.min(sx1).floor().max(0.0) as u32;
+    let right = sx0.max(sx1).ceil().min(dst.width() as f32) as u32;
+    let top = sy0.min(sy1).floor().max(0.0) as u32;
+    let bottom = sy0.max(sy1).ceil().min(dst.height() as f32) as u32;
+    if right <= left || bottom <= top || src_w == 0 || src_h == 0 {
+        return;
+    }
+
+    let span_w = (right - left) as f32;
+    let span_h = (bottom - top) as f32;
+    let dst_w = dst.width() as usize;
+    let dst_bytes = dst.data_mut();
+
+    for py in top..bottom {
+        let v = ((py - top) as f32 / span_h).clamp(0.0, 0.9999);
+        let sy = ((v * (src_h as f32)) as u32).min(src_h - 1) as usize;
+        for px in left..right {
+            let u = ((px - left) as f32 / span_w).clamp(0.0, 0.9999);
+            let sx = ((u * (src_w as f32)) as u32).min(src_w - 1) as usize;
+            let src_idx = (sy * (src_w as usize) + sx) * 4;
+            let dst_idx = ((py as usize) * dst_w + (px as usize)) * 4;
+            if src_idx + 4 <= src_rgba.len() && dst_idx + 4 <= dst_bytes.len() {
+                dst_bytes[dst_idx..dst_idx + 4].copy_from_slice(&src_rgba[src_idx..src_idx + 4]);
+            }
+        }
+    }
+}
+
+fn find_first_embedded_ttf(
+    doc: &Document,
+    resources: &crate::parser::object::PdfDict,
+) -> Option<Vec<u8>> {
+    let fonts = doc
+        .resolve_dict_entry(resources, b"Font")
+        .and_then(PdfObject::as_dict)?;
+    for f_ref in fonts.values() {
+        let Some(f_dict) = doc.resolve(f_ref).as_dict() else {
+            continue;
+        };
+        if let Some(desc_obj) = f_dict.get(b"FontDescriptor".as_slice()) {
+            if let Some(desc_dict) = doc.resolve(desc_obj).as_dict() {
+                if let Some(ff2) = desc_dict
+                    .get(b"FontFile2".as_slice())
+                    .or_else(|| desc_dict.get(b"FontFile3".as_slice()))
+                {
+                    if let Some(stm) = doc.resolve(ff2).as_stream() {
+                        if let Ok(bytes) = stm.decode_data() {
+                            return Some(bytes);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn draw_ttf_glyph(
+    skia_pix: &mut SkiaPixmap,
+    ttf_bytes: &[u8],
+    ch: char,
+    rect: crate::geometry::Rect,
+    scale: f32,
+) -> bool {
+    use ab_glyph::{Font, FontRef, PxScale};
+    let Ok(font) = FontRef::try_from_slice(ttf_bytes) else {
+        return false;
+    };
+    let glyph_id = font.glyph_id(ch);
+    if glyph_id.0 == 0 {
+        return false;
+    }
+    let px_height = ((rect.height() as f32) * scale).max(4.0);
+    let glyph = glyph_id.with_scale_and_position(
+        PxScale::from(px_height),
+        ab_glyph::point((rect.x0 as f32) * scale, (rect.y1 as f32) * scale),
+    );
+    let Some(outlined) = font.outline_glyph(glyph) else {
+        return false;
+    };
+    let bounds = outlined.px_bounds();
+    let dst_w = skia_pix.width() as i32;
+    let dst_h = skia_pix.height() as i32;
+    let dst_bytes = skia_pix.data_mut();
+    outlined.draw(|gx, gy, cov| {
+        if cov < 0.1 {
+            return;
+        }
+        let px = bounds.min.x as i32 + gx as i32;
+        let py = bounds.min.y as i32 + gy as i32;
+        if px >= 0 && px < dst_w && py >= 0 && py < dst_h {
+            let idx = ((py as usize) * (dst_w as usize) + (px as usize)) * 4;
+            let shade = ((1.0 - cov.clamp(0.0, 1.0)) * 255.0).round() as u8;
+            dst_bytes[idx] = dst_bytes[idx].min(shade);
+            dst_bytes[idx + 1] = dst_bytes[idx + 1].min(shade);
+            dst_bytes[idx + 2] = dst_bytes[idx + 2].min(shade);
+            dst_bytes[idx + 3] = 255;
+        }
+    });
+    true
 }
 
 #[inline]

@@ -379,10 +379,70 @@ impl PyPage {
         })
     }
 
+    /// Returns a list of `(xref, smask, width, height, bpc, colorspace, alt, name, filter)` tuples for images on the page.
+    #[pyo3(signature = (full=false))]
+    pub fn get_images(&self, full: bool) -> PyResult<Vec<ImageInfoTuple>> {
+        let _ = full;
+        let imgs =
+            self.with_doc(|doc, _| doc.get_page_images(self.page_index).map_err(to_py_err))?;
+        Ok(imgs
+            .into_iter()
+            .map(|i| {
+                (
+                    i.xref,
+                    i.smask,
+                    i.width,
+                    i.height,
+                    i.bpc,
+                    i.colorspace,
+                    i.alt_colorspace,
+                    i.name,
+                    i.filter,
+                )
+            })
+            .collect())
+    }
+
+    /// Inserts an image onto the page at `rect` from `filename`, `stream` (PNG bytes), or `pixmap`.
+    #[pyo3(signature = (rect, *, filename=None, stream=None, pixmap=None))]
+    pub fn insert_image(
+        &self,
+        rect: &Bound<'_, PyAny>,
+        filename: Option<std::path::PathBuf>,
+        stream: Option<Vec<u8>>,
+        pixmap: Option<&crate::pixmap::PyPixmap>,
+    ) -> PyResult<u32> {
+        let target_rect = extract_rect(rect)?;
+        if let Some(pix) = pixmap {
+            let inner = pix.inner.clone();
+            return self.with_doc_mut(|doc| {
+                doc.insert_image_pixmap(self.page_index, target_rect, &inner)
+                    .map_err(to_py_err)
+            });
+        }
+        let bytes = if let Some(b) = stream {
+            b
+        } else if let Some(path) = filename {
+            std::fs::read(&path).map_err(|e| {
+                pyo3::exceptions::PyValueError::new_err(format!("Failed to read {:?}: {e}", path))
+            })?
+        } else {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "insert_image requires 'filename', 'stream', or 'pixmap'",
+            ));
+        };
+        self.with_doc_mut(|doc| {
+            doc.insert_image_bytes(self.page_index, target_rect, &bytes)
+                .map_err(to_py_err)
+        })
+    }
+
     fn __repr__(&self) -> String {
         format!("Page({})", self.page_index)
     }
 }
+
+pub type ImageInfoTuple = (u32, u32, u32, u32, u8, String, String, String, String);
 
 pub(crate) fn extract_rect(obj: &Bound<'_, PyAny>) -> PyResult<rupdf_core::Rect> {
     if let Ok(r) = obj.extract::<PyRect>() {
