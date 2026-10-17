@@ -64,6 +64,23 @@ pub extern "C" fn rupdf_c_open(bytes: *const u8, len: usize) -> *mut Document {
 }
 
 #[no_mangle]
+pub extern "C" fn rupdf_c_open_bytes(bytes: *const u8, len: usize) -> *mut Document {
+    rupdf_c_open(bytes, len)
+}
+
+#[no_mangle]
+pub extern "C" fn rupdf_c_open_path(path: *const c_char) -> *mut Document {
+    if path.is_null() {
+        return ptr::null_mut();
+    }
+    let p = unsafe { c_to_str(path) };
+    match Document::open(p) {
+        Ok(doc) => Box::into_raw(Box::new(doc)),
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn rupdf_c_free(doc: *mut Document) {
     if !doc.is_null() {
         unsafe {
@@ -456,6 +473,37 @@ pub extern "C" fn rupdf_c_render_page_png(
     }
     let d = unsafe { &*doc };
     match d.render_page(page, dpi).and_then(|pix| pix.to_png()) {
+        Ok(mut v) => {
+            if !out_len.is_null() {
+                unsafe { *out_len = v.len() };
+            }
+            v.shrink_to_fit();
+            let p = v.as_mut_ptr();
+            std::mem::forget(v);
+            p
+        }
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rupdf_c_pixmap_to_png(
+    data: *const u8,
+    data_len: usize,
+    width: u32,
+    height: u32,
+    out_len: *mut usize,
+) -> *mut u8 {
+    if data.is_null() || data_len == 0 {
+        return ptr::null_mut();
+    }
+    let slice = unsafe { std::slice::from_raw_parts(data, data_len) };
+    let pix = rupdf_core::Pixmap {
+        width,
+        height,
+        data: slice.to_vec(),
+    };
+    match pix.to_png() {
         Ok(mut v) => {
             if !out_len.is_null() {
                 unsafe { *out_len = v.len() };
@@ -1038,5 +1086,35 @@ pub extern "C" fn rupdf_c_merge_pdfs(
             p
         }
         Err(_) => ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rupdf_c_save(
+    doc: *mut Document,
+    path: *const c_char,
+    deflate: i32,
+    encrypt: i32,
+    user_pw: *const c_char,
+    owner_pw: *const c_char,
+) -> i32 {
+    if doc.is_null() || path.is_null() {
+        return 0;
+    }
+    let d = unsafe { &*doc };
+    let path_str = unsafe { c_to_str(path) };
+    let res = if encrypt != 0 {
+        let u = unsafe { c_to_str(user_pw) };
+        let o = unsafe { c_to_str(owner_pw) };
+        d.to_bytes_encrypted(deflate != 0, Some(u), Some(o))
+    } else {
+        d.to_bytes(deflate != 0)
+    };
+    match res {
+        Ok(bytes) => match std::fs::write(path_str, bytes) {
+            Ok(_) => 1,
+            Err(_) => 0,
+        },
+        Err(_) => 0,
     }
 }

@@ -659,6 +659,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rupdf-ffi"
+version = "0.1.0"
+dependencies = [
+ "rupdf-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "rupdf-py"
 version = "0.1.0"
 dependencies = [

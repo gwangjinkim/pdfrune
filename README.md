@@ -1,13 +1,15 @@
 # rupdf
 
-**Ultra-Fast, Memory-Safe, Permissive PDF Engine in Rust, Python & R**
+**Ultra-Fast, Memory-Safe, Permissive PDF Engine in Rust, Python, R & Common Lisp**
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 [![Rust](https://img.shields.io/badge/Rust-2021%20Edition-orange.svg)](crates/rupdf-core)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](python/rupdf)
 [![CRAN](https://img.shields.io/badge/CRAN-rupdf-276DC3.svg)](r/)
+[![Quicklisp](https://img.shields.io/badge/Quicklisp-rupdf-darkgreen.svg)](lisp/)
+[![Ultralisp](https://img.shields.io/badge/Ultralisp-rupdf-blueviolet.svg)](lisp/)
 
-`rupdf` is a clean-room, high-performance PDF engine written in 100% memory-safe Rust ([`rupdf-core`](crates/rupdf-core)) with zero-overhead Python bindings ([`rupdf`](python/rupdf)) and CRAN-compliant R bindings ([`r/`](r/)). It provides full functional parity with PyMuPDF (`fitz`) workflows—plus native multi-core parallelism, structured Markdown/HTML export, table detection, SIMD-accelerated search, and AI/RAG semantic chunking—under a **100% permissive `MIT OR Apache-2.0` dual license** with zero AGPL restrictions.
+`rupdf` is a clean-room, high-performance PDF engine written in 100% memory-safe Rust ([`rupdf-core`](crates/rupdf-core)) with zero-overhead Python bindings ([`rupdf`](python/rupdf)), CRAN-compliant R bindings ([`r/`](r/)), and ANSI-standard Common Lisp bindings ([`lisp/`](lisp/)) designed in the classic style of Edi Weitz. It provides full functional parity with PyMuPDF (`fitz`) workflows—plus native multi-core parallelism, structured Markdown/HTML export, table detection, SIMD-accelerated search, and AI/RAG semantic chunking—under a **100% permissive `MIT OR Apache-2.0` dual license** with zero AGPL restrictions.
 
 ---
 
@@ -27,6 +29,7 @@
   - [8. AI / RAG Chunker, Markdown/HTML & Multi-Core Batch Processing](#8-ai--rag-chunker-markdownhtml--multi-core-batch-processing)
   - [9. Drop-In PyMuPDF (`fitz`) Compatibility](#9-drop-in-pymupdf-fitz-compatibility)
 - [R Package Quickstart & CRAN (`uvr`)](#r-package-quickstart--cran-uvr)
+- [Common Lisp Package Quickstart (Quicklisp & Ultralisp)](#common-lisp-package-quickstart-quicklisp--ultralisp)
 - [Using `rupdf-core` Directly in Rust](#using-rupdf-core-directly-in-rust)
 - [Documentation](#documentation)
 - [Development & Testing](#development--testing)
@@ -339,6 +342,66 @@ pdf_save(doc, "redacted.pdf", encryption = "rc4-128", user_pw = "secret")
 
 ---
 
+## Common Lisp Package Quickstart (Quicklisp & Ultralisp)
+
+The Common Lisp package (`:rupdf` / `:cl-rupdf`) follows the classic design and documentation style of **Edi Weitz** (`cl-ppcre`, `cl-fad`, `drakma`). It is 100% ANSI-standard Common Lisp and portable across all major implementations (SBCL, CCL, ECL, ABCL, CLISP, Allegro, LispWorks).
+
+### Loading with Quicklisp / Ultralisp
+
+```lisp
+(ql:quickload :rupdf)
+```
+
+### Common Lisp Code Examples
+
+```lisp
+(in-package :rupdf)
+
+;; 1. Open and extract plain text or layout words
+(with-open-pdf (doc #p"report.pdf")
+  (format t "Document has ~D pages.~%" (page-count doc))
+  (format t "Page 1 Text:~%~A~%" (extract-text doc 0))
+  
+  ;; Search across entire document
+  (dolist (match (search-document doc "Common Lisp"))
+    (format t "Found on page ~D at ~A~%" (getf match :page) (getf match :bbox))))
+
+;; 2. Automatic table detection & Markdown conversion
+(with-open-pdf (doc #p"report.pdf")
+  (let ((tables (find-tables doc 0)))
+    (dolist (tab tables)
+      (format t "Found table (~Dx~D):~%" (table-row-count tab) (table-col-count tab))
+      (format t "~A~%~%" (table-markdown tab)))))
+
+;; 3. Rasterize page to 300 DPI RGBA Pixmap and save PNG
+(with-open-pdf (doc #p"report.pdf")
+  (let ((pix (render-page doc 0 :dpi 300.0)))
+    (save-pixmap pix #p"page1.png")))
+
+;; 4. Create new PDF, draw vector graphics & TrueType typography
+(with-open-pdf (doc (new-pdf))
+  (new-page doc :width 612.0 :height 792.0)
+  (draw-rect doc 0 '(50.0 700.0 562.0 750.0)
+             :fill-color '(0.1 0.2 0.5)
+             :stroke-color '(0.0 0.0 0.0)
+             :stroke-width 1.5)
+  (insert-text doc 0 '(72.0 720.0) "Hello from Common Lisp!"
+               :font-size 18.0
+               :color '(1.0 1.0 1.0))
+  (save-document doc #p"hello_lisp.pdf" :deflate t))
+
+;; 5. Irreversible Redaction & ISO 32000 Encryption (RC4-128)
+(with-open-pdf (doc #p"secret.pdf")
+  (add-redaction doc 0 '(72.0 100.0 250.0 130.0))
+  (apply-redactions doc)
+  (save-document doc #p"redacted.pdf"
+                 :deflate t
+                 :encryption "rc4-128"
+                 :user-password "lisp_secret"))
+```
+
+---
+
 ## Using `rupdf-core` Directly in Rust
 
 `rupdf-core` is a standalone, zero-Python Rust library suitable for CLI tools, backend microservices, WebAssembly targets, or native desktop apps:
@@ -378,6 +441,7 @@ fn main() -> rupdf_core::Result<()> {
 Detailed guides and API references are located in the [`docs/`](docs/) directory:
 
 - [**Python API Reference**](docs/python-api.md) — Complete reference for `Document`, `Page`, `Pixmap`, `Table`, `Rect`, `Point`, `Matrix`, and module-level functions.
+- [**Common Lisp API Reference & Guide**](lisp/README.md) ([docs/lisp-api.md](docs/lisp-api.md)) — Complete reference for Common Lisp macros, functions, conditions, and types in Edi Weitz style.
 - [**R Package Reference**](docs/r-api.md) — Complete reference for R functions (`pdf_open`, `pdf_render`, `pdf_find_tables`, `pdf_extract_text`, etc.) and `uvr` usage.
 - [**Rust (`rupdf-core`) API Reference**](docs/rust-api.md) — Guide to using `rupdf-core` directly in Rust applications.
 - [**PyMuPDF (`fitz`) Migration Guide**](docs/migration-from-pymupdf.md) — Side-by-side cheat sheet for migrating from PyMuPDF to `rupdf`.
@@ -387,7 +451,7 @@ Detailed guides and API references are located in the [`docs/`](docs/) directory
 
 ## Development & Testing
 
-All Python workflows use `uv`, R workflows use `uvr`, and all Rust crates are checked with `cargo`:
+All Python workflows use `uv`, R workflows use `uvr`, Common Lisp workflows use ANSI ASDF/Quicklisp, and all Rust crates are checked with `cargo`:
 
 ```bash
 # Format, lint, and run Rust unit tests
@@ -400,6 +464,11 @@ uv run pytest
 
 # Run the full R test suite
 cd r && uvr run run_tests.R
+
+# Run the full Common Lisp test suite
+sbcl --noinform --non-interactive \
+  --eval '(ql:quickload :rupdf-test)' \
+  --eval '(asdf:test-system :rupdf)'
 ```
 
 ---
