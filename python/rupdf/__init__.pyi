@@ -4,6 +4,7 @@ from typing import BinaryIO, Iterator, overload
 __version__: str
 
 def version() -> str: ...
+def benchmark(pages: int = 50) -> dict[str, float | int]: ...
 
 class Point:
     x: float

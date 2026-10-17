@@ -159,3 +159,87 @@ pub fn batch_render_pages(doc: &Document, dpi: f64) -> Result<Vec<Pixmap>> {
         .map(|idx| render_page(doc, idx, dpi))
         .collect()
 }
+
+/// Performance metrics returned by `run_benchmark`.
+#[derive(Debug, Clone)]
+pub struct BenchmarkMetrics {
+    pub pages: usize,
+    pub parse_ms: f64,
+    pub extract_ms: f64,
+    pub search_ms: f64,
+    pub markdown_ms: f64,
+    pub render_ms: f64,
+    pub pages_per_sec_extract: f64,
+    pub pages_per_sec_render: f64,
+}
+
+/// Runs an internal multi-core benchmark across `pages` synthesized pages.
+pub fn run_benchmark(pages: usize) -> Result<BenchmarkMetrics> {
+    use crate::geometry::Point;
+    use std::time::Instant;
+
+    let page_count = pages.max(1);
+    let mut builder = Document::new();
+    for i in 0..page_count {
+        let pno = builder.new_page(None, 612.0, 792.0)?;
+        builder.insert_text(
+            pno,
+            Point::new(72.0, 72.0),
+            &format!("Section {i} Benchmark Header"),
+            22.0,
+            [0.1, 0.2, 0.5],
+        )?;
+        builder.insert_text(
+            pno,
+            Point::new(72.0, 120.0),
+            "rupdf delivers memory-safe, SIMD-accelerated PDF parsing and rendering in Rust.",
+            12.0,
+            [0.0, 0.0, 0.0],
+        )?;
+        builder.draw_rect(
+            pno,
+            Rect::new(72.0, 150.0, 400.0, 220.0),
+            Some([0.2, 0.3, 0.7]),
+            Some([0.9, 0.95, 1.0]),
+            1.5,
+        )?;
+    }
+    let raw_bytes = builder.to_bytes(true)?;
+
+    let t0 = Instant::now();
+    let doc = Document::from_bytes(&raw_bytes)?;
+    let parse_ms = t0.elapsed().as_secs_f64() * 1000.0;
+
+    let t1 = Instant::now();
+    let _: Result<Vec<String>> = (0..doc.page_count())
+        .into_par_iter()
+        .map(|i| doc.extract_page_text(i))
+        .collect();
+    let extract_ms = t1.elapsed().as_secs_f64() * 1000.0;
+
+    let t2 = Instant::now();
+    let _ = doc.search_all("SIMD-accelerated", false)?;
+    let search_ms = t2.elapsed().as_secs_f64() * 1000.0;
+
+    let t3 = Instant::now();
+    let _ = doc.to_markdown()?;
+    let markdown_ms = t3.elapsed().as_secs_f64() * 1000.0;
+
+    let t4 = Instant::now();
+    let _ = doc.render_all_pages(72.0)?;
+    let render_ms = t4.elapsed().as_secs_f64() * 1000.0;
+
+    let pages_per_sec_extract = (page_count as f64) / (extract_ms / 1000.0).max(1e-6);
+    let pages_per_sec_render = (page_count as f64) / (render_ms / 1000.0).max(1e-6);
+
+    Ok(BenchmarkMetrics {
+        pages: page_count,
+        parse_ms,
+        extract_ms,
+        search_ms,
+        markdown_ms,
+        render_ms,
+        pages_per_sec_extract,
+        pages_per_sec_render,
+    })
+}
