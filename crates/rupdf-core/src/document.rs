@@ -585,9 +585,48 @@ impl Document {
         crate::render::render_page(self, page_index, dpi)
     }
 
+    /// Rasterizes all pages in parallel via `rayon` at `dpi` into `Pixmap`s.
+    pub fn render_all_pages(&self, dpi: f64) -> Result<Vec<crate::render::Pixmap>> {
+        use rayon::prelude::*;
+        (0..self.page_count())
+            .into_par_iter()
+            .map(|idx| self.render_page(idx, dpi))
+            .collect()
+    }
+
     /// Exports `page_index` to a vector SVG string.
     pub fn render_page_svg(&self, page_index: usize) -> Result<String> {
         crate::render::render_page_svg(self, page_index)
+    }
+
+    /// Exports `page_index` to structured Markdown.
+    pub fn page_to_markdown(&self, page_index: usize) -> Result<String> {
+        crate::advanced::page_to_markdown(self, page_index)
+    }
+
+    /// Exports the entire document to structured Markdown.
+    pub fn to_markdown(&self) -> Result<String> {
+        crate::advanced::doc_to_markdown(self)
+    }
+
+    /// Exports `page_index` to semantic HTML.
+    pub fn page_to_html(&self, page_index: usize) -> Result<String> {
+        crate::advanced::page_to_html(self, page_index)
+    }
+
+    /// Exports the entire document to semantic HTML.
+    pub fn to_html(&self) -> Result<String> {
+        crate::advanced::doc_to_html(self)
+    }
+
+    /// Generates semantic RAG chunks with bounding box coordinates across the document.
+    pub fn to_rag_chunks(&self, max_chars: usize) -> Result<Vec<crate::advanced::RagChunk>> {
+        crate::advanced::doc_to_rag_chunks(self, max_chars)
+    }
+
+    /// Searches across all pages in parallel using SIMD substring or regex matching.
+    pub fn search_all(&self, query: &str, use_regex: bool) -> Result<Vec<(usize, Vec<Rect>)>> {
+        crate::advanced::search_document(self, query, use_regex)
     }
 }
 

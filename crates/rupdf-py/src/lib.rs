@@ -5,7 +5,7 @@ pub mod rect;
 
 use pyo3::prelude::*;
 
-use crate::doc::{merge_pdfs, open_document, PyDocument};
+use crate::doc::{batch_extract, batch_render, merge_pdfs, open_document, PyDocument};
 use crate::page::PyPage;
 use crate::pixmap::PyPixmap;
 use crate::rect::{PyMatrix, PyPoint, PyRect};
@@ -23,6 +23,8 @@ fn _rupdf(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(version, m)?)?;
     m.add_function(wrap_pyfunction!(open_document, m)?)?;
     m.add_function(wrap_pyfunction!(merge_pdfs, m)?)?;
+    m.add_function(wrap_pyfunction!(batch_extract, m)?)?;
+    m.add_function(wrap_pyfunction!(batch_render, m)?)?;
     m.add_class::<PyPoint>()?;
     m.add_class::<PyRect>()?;
     m.add_class::<PyMatrix>()?;

@@ -209,6 +209,8 @@ impl PyPage {
             "text" | "" => Ok(self.extract_text(py)?.into_pyobject(py)?.into_any()),
             "words" => Ok(self.extract_words(py)?.into_pyobject(py)?.into_any()),
             "blocks" => Ok(self.extract_blocks(py)?.into_pyobject(py)?.into_any()),
+            "markdown" | "md" => Ok(self.to_markdown(py)?.into_pyobject(py)?.into_any()),
+            "html" => Ok(self.to_html(py)?.into_pyobject(py)?.into_any()),
             "json" => {
                 let json_str = py.allow_threads(|| {
                     self.with_doc(|doc, _| {
@@ -223,6 +225,20 @@ impl PyPage {
                 "Unsupported get_text option: {other}"
             ))),
         }
+    }
+
+    /// Exports structured page text as Markdown (headers, lists, paragraphs).
+    pub fn to_markdown(&self, py: Python<'_>) -> PyResult<String> {
+        py.allow_threads(|| {
+            self.with_doc(|doc, _| doc.page_to_markdown(self.page_index).map_err(to_py_err))
+        })
+    }
+
+    /// Exports structured page text as HTML (`<h1>`, `<h2>`, `<ul>`, `<p>`).
+    pub fn to_html(&self, py: Python<'_>) -> PyResult<String> {
+        py.allow_threads(|| {
+            self.with_doc(|doc, _| doc.page_to_html(self.page_index).map_err(to_py_err))
+        })
     }
 
     /// Searches for `needle` (case-insensitive) on the page and returns matching `Rect` list.
