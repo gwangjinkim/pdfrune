@@ -77,13 +77,14 @@ impl PyDocument {
 #[pymethods]
 impl PyDocument {
     #[new]
-    #[pyo3(signature = (filename=None, *, stream=None))]
+    #[pyo3(signature = (filename=None, *, stream=None, filetype=None))]
     pub fn new(
         py: Python<'_>,
         filename: Option<&Bound<'_, PyAny>>,
         stream: Option<&Bound<'_, PyAny>>,
+        filetype: Option<&str>,
     ) -> PyResult<Self> {
-        open_document(py, filename, stream)
+        open_document(py, filename, stream, filetype)
     }
 
     /// Number of pages in the document.
@@ -253,6 +254,65 @@ impl PyDocument {
         py.allow_threads(|| self.with_doc(|doc| doc.save(&filename, deflate).map_err(to_py_err)))
     }
 
+    /// Exports all pages of the document to Markdown (parallelized across pages via `rayon`).
+    pub fn to_markdown(&self, py: Python<'_>) -> PyResult<String> {
+        py.allow_threads(|| self.with_doc(|doc| doc.to_markdown().map_err(to_py_err)))
+    }
+
+    /// Exports all pages of the document to HTML (parallelized across pages via `rayon`).
+    pub fn to_html(&self, py: Python<'_>) -> PyResult<String> {
+        py.allow_threads(|| self.with_doc(|doc| doc.to_html().map_err(to_py_err)))
+    }
+
+    /// Produces AI/RAG-ready semantic chunks with bounding box coordinates and section headings.
+    #[pyo3(signature = (max_chars=500))]
+    pub fn to_rag_chunks<'py>(
+        &self,
+        py: Python<'py>,
+        max_chars: usize,
+    ) -> PyResult<Vec<Bound<'py, pyo3::types::PyDict>>> {
+        let chunks = py.allow_threads(|| {
+            self.with_doc(|doc| doc.to_rag_chunks(max_chars).map_err(to_py_err))
+        })?;
+        let mut out = Vec::with_capacity(chunks.len());
+        for c in chunks {
+            let dict = pyo3::types::PyDict::new(py);
+            dict.set_item("chunk_id", c.chunk_id)?;
+            dict.set_item("page_number", c.page_number)?;
+            dict.set_item("bbox", (c.bbox.x0, c.bbox.y0, c.bbox.x1, c.bbox.y1))?;
+            dict.set_item("text", c.text)?;
+            dict.set_item("char_count", c.char_count)?;
+            dict.set_item("section_heading", c.section_heading)?;
+            out.push(dict);
+        }
+        Ok(out)
+    }
+
+    /// Searches across all pages in parallel using SIMD substring matching (`regex=False`) or `regex=True`.
+    #[pyo3(signature = (query, *, regex=false))]
+    pub fn search_all(
+        &self,
+        py: Python<'_>,
+        query: &str,
+        regex: bool,
+    ) -> PyResult<Vec<(usize, Vec<crate::rect::PyRect>)>> {
+        let hits = py.allow_threads(|| {
+            self.with_doc(|doc| doc.search_all(query, regex).map_err(to_py_err))
+        })?;
+        Ok(hits
+            .into_iter()
+            .map(|(pno, rects)| {
+                (
+                    pno,
+                    rects
+                        .into_iter()
+                        .map(|inner| crate::rect::PyRect { inner })
+                        .collect(),
+                )
+            })
+            .collect())
+    }
+
     /// Closes the document and releases underlying memory.
     pub fn close(&self) -> PyResult<()> {
         let mut guard = self
@@ -327,7 +387,7 @@ pub fn merge_pdfs(py: Python<'_>, documents: &Bound<'_, PyAny>) -> PyResult<PyDo
             out.insert_pdf(&cloned, None, None, None)
                 .map_err(to_py_err)?;
         } else {
-            let opened = open_document(py, Some(&item), None)?;
+            let opened = open_document(py, Some(&item), None, None)?;
             let cloned = opened.with_doc(|d| Ok(d.clone()))?;
             out.insert_pdf(&cloned, None, None, None)
                 .map_err(to_py_err)?;
@@ -336,14 +396,75 @@ pub fn merge_pdfs(py: Python<'_>, documents: &Bound<'_, PyAny>) -> PyResult<PyDo
     Ok(PyDocument::from_core(out))
 }
 
+/// Extracts plain text across a batch of PDF documents (paths, bytes, or `Document` objects) in parallel without the GIL.
+#[pyfunction]
+pub fn batch_extract(py: Python<'_>, inputs: &Bound<'_, PyAny>) -> PyResult<Vec<String>> {
+    use rayon::prelude::*;
+    let mut raw_docs: Vec<Vec<u8>> = Vec::new();
+    for item in inputs.try_iter()? {
+        let item = item?;
+        if let Ok(bytes) = item.extract::<Vec<u8>>() {
+            raw_docs.push(bytes);
+        } else if let Ok(py_doc) = item.extract::<PyDocument>() {
+            let bytes = py_doc.with_doc(|d| d.to_bytes(false).map_err(to_py_err))?;
+            raw_docs.push(bytes);
+        } else if let Ok(path) = item.extract::<PathBuf>() {
+            let bytes = std::fs::read(&path)
+                .map_err(|e| PyValueError::new_err(format!("Failed to read {:?}: {e}", path)))?;
+            raw_docs.push(bytes);
+        } else {
+            return Err(PyTypeError::new_err(
+                "batch_extract elements must be file paths, bytes, or Document instances",
+            ));
+        }
+    }
+
+    py.allow_threads(|| {
+        raw_docs
+            .par_iter()
+            .map(|bytes| {
+                let doc = Document::from_bytes(bytes).map_err(to_py_err)?;
+                let mut page_texts = Vec::with_capacity(doc.page_count());
+                for i in 0..doc.page_count() {
+                    page_texts.push(doc.extract_page_text(i).map_err(to_py_err)?);
+                }
+                Ok(page_texts.join("\n\n"))
+            })
+            .collect()
+    })
+}
+
+/// Renders all pages of a PDF document (or path/bytes) to `Pixmap` objects in parallel without the GIL.
+#[pyfunction]
+#[pyo3(signature = (source, *, dpi=72.0))]
+pub fn batch_render(
+    py: Python<'_>,
+    source: &Bound<'_, PyAny>,
+    dpi: f64,
+) -> PyResult<Vec<crate::pixmap::PyPixmap>> {
+    let py_doc = if let Ok(d) = source.extract::<PyDocument>() {
+        d
+    } else {
+        open_document(py, Some(source), None, None)?
+    };
+    let pixmaps =
+        py.allow_threads(|| py_doc.with_doc(|doc| doc.render_all_pages(dpi).map_err(to_py_err)))?;
+    Ok(pixmaps
+        .into_iter()
+        .map(|inner| crate::pixmap::PyPixmap { inner })
+        .collect())
+}
+
 /// Opens a PDF document from a file path, raw bytes, a file-like object, or creates an empty document.
 #[pyfunction]
-#[pyo3(signature = (filename=None, *, stream=None))]
+#[pyo3(signature = (filename=None, *, stream=None, filetype=None))]
 pub fn open_document(
     py: Python<'_>,
     filename: Option<&Bound<'_, PyAny>>,
     stream: Option<&Bound<'_, PyAny>>,
+    filetype: Option<&str>,
 ) -> PyResult<PyDocument> {
+    let _ = filetype;
     if let Some(stm) = stream {
         let bytes = extract_bytes_or_read(stm)?;
         let doc = py

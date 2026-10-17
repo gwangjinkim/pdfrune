@@ -1,3 +1,4 @@
+pub mod advanced;
 pub mod document;
 pub mod error;
 pub mod geometry;
@@ -7,6 +8,10 @@ pub mod parser;
 pub mod render;
 pub mod text;
 
+pub use advanced::{
+    batch_extract_bytes, batch_render_pages, doc_to_html, doc_to_markdown, doc_to_rag_chunks,
+    page_to_html, page_to_markdown, search_document, RagChunk,
+};
 pub use document::Document;
 pub use error::{Result, RupdfError};
 pub use geometry::{Matrix, Point, Rect};

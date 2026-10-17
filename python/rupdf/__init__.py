@@ -8,16 +8,22 @@ from rupdf._rupdf import (
     Point,
     Rect,
     __version__,
+    batch_extract,
+    batch_render,
     merge_pdfs as merge,
     open_document as open,
     version,
 )
+from rupdf.compat import fitz
 
 __all__ = [
     "__version__",
     "version",
     "open",
     "merge",
+    "batch_extract",
+    "batch_render",
+    "fitz",
     "Document",
     "Page",
     "Pixmap",
