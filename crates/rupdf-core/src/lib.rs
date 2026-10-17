@@ -1,5 +1,6 @@
 pub mod advanced;
 pub mod annot;
+pub mod crypto;
 pub mod document;
 pub mod error;
 pub mod geometry;
@@ -12,7 +13,8 @@ pub mod text;
 
 pub use advanced::{
     batch_extract_bytes, batch_render_pages, doc_to_html, doc_to_markdown, doc_to_rag_chunks,
-    page_to_html, page_to_markdown, run_benchmark, search_document, BenchmarkMetrics, RagChunk,
+    find_page_tables, page_to_html, page_to_markdown, run_benchmark, search_document,
+    BenchmarkMetrics, DetectedTable, RagChunk,
 };
 pub use annot::{
     add_page_annot, add_page_widget, apply_page_redactions, delete_page_annot, get_page_annots,
@@ -154,5 +156,50 @@ startxref\n999999\n%%EOF";
         assert_eq!(metrics.pages, 5);
         assert!(metrics.pages_per_sec_extract > 0.0);
         assert!(metrics.pages_per_sec_render > 0.0);
+    }
+
+    #[test]
+    fn test_tables_and_rc4_encryption_roundtrip() {
+        let mut doc = Document::new();
+        doc.new_page(None, 612.0, 792.0).unwrap();
+        let rows = [
+            ("Quarter", "Revenue", "Growth"),
+            ("Q1-2026", "$12.4M", "+18%"),
+            ("Q2-2026", "$15.1M", "+22%"),
+        ];
+        let mut y = 120.0;
+        for (c0, c1, c2) in rows {
+            doc.insert_text(0, Point::new(72.0, y), c0, 12.0, [0.0, 0.0, 0.0])
+                .unwrap();
+            doc.insert_text(0, Point::new(220.0, y), c1, 12.0, [0.0, 0.0, 0.0])
+                .unwrap();
+            doc.insert_text(0, Point::new(360.0, y), c2, 12.0, [0.0, 0.0, 0.0])
+                .unwrap();
+            y += 28.0;
+        }
+
+        let tables = doc.find_page_tables(0).unwrap();
+        assert_eq!(tables.len(), 1);
+        assert_eq!(tables[0].row_count(), 3);
+        assert_eq!(tables[0].col_count(), 3);
+        assert_eq!(tables[0].header(), vec!["Quarter", "Revenue", "Growth"]);
+        assert!(tables[0]
+            .to_markdown()
+            .contains("| Quarter | Revenue | Growth |"));
+
+        let enc_bytes = doc
+            .to_bytes_encrypted(false, Some("user_pw_123"), Some("owner_pw_456"))
+            .unwrap();
+        assert!(!enc_bytes.windows(b"Quarter".len()).any(|w| w == b"Quarter"));
+
+        let mut enc_doc = Document::from_bytes(&enc_bytes).unwrap();
+        assert!(enc_doc.is_encrypted);
+        assert!(!enc_doc.is_authenticated);
+        assert!(!enc_doc.authenticate("wrong_pw").unwrap());
+        assert!(enc_doc.authenticate("user_pw_123").unwrap());
+        assert!(enc_doc.is_authenticated);
+        let text = enc_doc.extract_page_text(0).unwrap();
+        assert!(text.contains("Quarter"));
+        assert!(text.contains("Q1-2026"));
     }
 }

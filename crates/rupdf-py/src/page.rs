@@ -602,8 +602,84 @@ impl PyPage {
         })
     }
 
+    /// Detects structured tables on the page and returns a list of `Table` objects.
+    pub fn find_tables(&self, py: Python<'_>) -> PyResult<Vec<PyTable>> {
+        let tables = py.allow_threads(|| {
+            self.with_doc(|doc, _| doc.find_page_tables(self.page_index).map_err(to_py_err))
+        })?;
+        Ok(tables.into_iter().map(|inner| PyTable { inner }).collect())
+    }
+
     fn __repr__(&self) -> String {
         format!("Page({})", self.page_index)
+    }
+}
+
+/// Structured table detected on a PDF page.
+#[pyclass(name = "Table", module = "rupdf")]
+#[derive(Debug, Clone)]
+pub struct PyTable {
+    pub inner: rupdf_core::DetectedTable,
+}
+
+#[pymethods]
+impl PyTable {
+    /// Number of rows in the detected table.
+    #[getter]
+    pub fn row_count(&self) -> usize {
+        self.inner.row_count()
+    }
+
+    /// Number of columns in the detected table.
+    #[getter]
+    pub fn col_count(&self) -> usize {
+        self.inner.col_count()
+    }
+
+    /// Bounding box `Rect` enclosing the table.
+    #[getter]
+    pub fn bbox(&self) -> PyRect {
+        PyRect {
+            inner: self.inner.bbox,
+        }
+    }
+
+    /// First row of the table as column headers.
+    #[getter]
+    pub fn header(&self) -> Vec<String> {
+        self.inner.header()
+    }
+
+    /// Extracts the 2D table cells as `list[list[str]]`.
+    pub fn extract(&self) -> Vec<Vec<String>> {
+        self.inner.extract()
+    }
+
+    /// Exports the table as a GitHub-Flavored Markdown table string.
+    pub fn to_markdown(&self) -> String {
+        self.inner.to_markdown()
+    }
+
+    /// Exports data rows (excluding header) as a list of `dict[header, cell_value]`.
+    pub fn to_dicts<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, pyo3::types::PyDict>>> {
+        let rows = self.inner.to_dicts();
+        let mut out = Vec::with_capacity(rows.len());
+        for row in rows {
+            let d = pyo3::types::PyDict::new(py);
+            for (k, v) in row {
+                d.set_item(k, v)?;
+            }
+            out.push(d);
+        }
+        Ok(out)
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Table(rows={}, cols={})",
+            self.row_count(),
+            self.col_count()
+        )
     }
 }
 

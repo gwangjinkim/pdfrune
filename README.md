@@ -9,9 +9,14 @@
 - **100% Permissive License**: Dual-licensed under `MIT OR Apache-2.0`. Free for commercial, academic, and private use without copyleft constraints.
 - **Memory-Safe Rust Core**: Zero segfaults, buffer overflows, or use-after-free bugs on malformed or truncated PDFs, with automatic SIMD cross-reference (`xref`) repair.
 - **GIL-Free Multi-Core Parallelism**: Batch extraction, rendering, and search release the Python GIL and scale across CPU cores via `rayon`.
-- **Rich Extraction & Layout Analysis**: Extract plain text, words, lines, blocks, JSON layouts, and bounding boxes with CMap (`/ToUnicode`) and Adobe Glyph List decoding.
-- **Rasterization & Vector Export**: Render PDF pages to RGBA8888 `Pixmap`, PNG, PPM, and scalable vector `SVG`.
-- **Document Creation & Manipulation**: Create pages, insert text/shapes, merge, split, delete, rotate, crop, and serialize compressed PDFs.
+- **Rich Extraction & Layout Analysis**: Extract plain text, words, lines, blocks, JSON layouts, structured tables (`page.find_tables()`), and bounding boxes with CMap (`/ToUnicode`) and Adobe Glyph List decoding.
+- **Rasterization & Vector Export**: Render PDF pages—including embedded `/Image` XObjects and TrueType (`/FontFile2`) glyphs—to RGBA8888 `Pixmap`, PNG, PPM, and scalable vector `SVG`.
+- **Navigation, Annotations, Redactions & Forms**:
+  - Hierarchical Outlines / Table of Contents (`doc.get_toc()`, `doc.set_toc()`) and Hyperlinks (`page.get_links()`, `page.insert_link()`)
+  - Image inventory, extraction & insertion (`page.get_images()`, `doc.extract_image()`, `page.insert_image()`)
+  - Annotations (`page.annots()`, `add_highlight_annot()`, `add_text_annot()`, `add_rect_annot()`) & true content-stream Redactions (`add_redact_annot()`, `apply_redactions()`)
+  - Interactive `/AcroForm` widgets (`page.widgets()`, `page.add_widget()`, `page.set_field_value()`)
+- **Document Creation, Manipulation & Encryption**: Create pages, insert text/shapes, merge, split, delete, rotate, crop, and serialize compressed or password-encrypted PDFs (`encryption="rc4-128"`, `doc.authenticate()`).
 - **Beyond PyMuPDF Innovations**:
   - `page.to_markdown()` / `doc.to_markdown()` & `to_html()`
   - `doc.to_rag_chunks(max_chars=500)` with page numbers, section headings, and bounding box coordinates
