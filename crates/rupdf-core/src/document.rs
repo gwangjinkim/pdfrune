@@ -695,6 +695,69 @@ impl Document {
     ) -> Result<u32> {
         crate::render::insert_image_pixmap(self, page_index, rect, pixmap)
     }
+
+    /// Lists all annotations on `page_index`.
+    pub fn get_page_annots(&self, page_index: usize) -> Result<Vec<crate::annot::AnnotInfo>> {
+        crate::annot::get_page_annots(self, page_index)
+    }
+
+    /// Adds an annotation to `page_index`.
+    pub fn add_page_annot(
+        &mut self,
+        page_index: usize,
+        subtype: &str,
+        rect: Rect,
+        contents: Option<&str>,
+        color: [f64; 3],
+        overlay_text: Option<&str>,
+    ) -> Result<crate::annot::AnnotInfo> {
+        crate::annot::add_page_annot(
+            self,
+            page_index,
+            subtype,
+            rect,
+            contents,
+            color,
+            overlay_text,
+        )
+    }
+
+    /// Deletes an annotation by `xref` from `page_index`.
+    pub fn delete_page_annot(&mut self, page_index: usize, xref: u32) -> Result<()> {
+        crate::annot::delete_page_annot(self, page_index, xref)
+    }
+
+    /// Applies all `/Redact` annotations on `page_index`, scrubbing underlying text.
+    pub fn apply_page_redactions(&mut self, page_index: usize) -> Result<usize> {
+        crate::annot::apply_page_redactions(self, page_index)
+    }
+
+    /// Lists all AcroForm `/Widget` fields on `page_index`.
+    pub fn get_page_widgets(&self, page_index: usize) -> Result<Vec<crate::annot::WidgetInfo>> {
+        crate::annot::get_page_widgets(self, page_index)
+    }
+
+    /// Adds an interactive AcroForm `/Widget` field to `page_index`.
+    pub fn add_page_widget(
+        &mut self,
+        page_index: usize,
+        field_name: &str,
+        field_type: &str,
+        rect: Rect,
+        field_value: &str,
+    ) -> Result<crate::annot::WidgetInfo> {
+        crate::annot::add_page_widget(self, page_index, field_name, field_type, rect, field_value)
+    }
+
+    /// Updates the value of an AcroForm `/Widget` field on `page_index`.
+    pub fn set_page_field_value(
+        &mut self,
+        page_index: usize,
+        field_name: &str,
+        new_value: &str,
+    ) -> Result<bool> {
+        crate::annot::set_page_field_value(self, page_index, field_name, new_value)
+    }
 }
 
 impl Default for Document {
