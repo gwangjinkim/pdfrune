@@ -11,6 +11,16 @@ use crate::parser::object::{PdfDict, PdfDictExt, PdfObject, PdfStream};
 
 /// Serializes a `Document` into a valid ISO 32000 PDF byte vector.
 pub fn serialize_document(doc: &Document, deflate: bool) -> Result<Vec<u8>> {
+    serialize_document_encrypted(doc, deflate, None, None)
+}
+
+/// Serializes a `Document` with optional ISO 32000 Standard Security Handler (`user_pw` / `owner_pw`).
+pub fn serialize_document_encrypted(
+    doc: &Document,
+    deflate: bool,
+    user_pw: Option<&str>,
+    owner_pw: Option<&str>,
+) -> Result<Vec<u8>> {
     let mut objects = doc.objects.clone();
     let mut trailer = doc.trailer.clone();
 
@@ -80,6 +90,22 @@ pub fn serialize_document(doc: &Document, deflate: bool) -> Result<Vec<u8>> {
     pages_dict.insert(b"Count".to_vec(), PdfObject::Int(doc.pages.len() as i64));
     objects.insert(pages_id.0, PdfObject::Dict(pages_dict));
 
+    let effective_deflate = if user_pw.is_some() || owner_pw.is_some() {
+        // When encrypting, do not apply post-encryption Flate in write_pdf_stream
+        false
+    } else {
+        deflate
+    };
+
+    if user_pw.is_some() || owner_pw.is_some() {
+        crate::crypto::encrypt_document_objects(
+            &mut objects,
+            &mut trailer,
+            user_pw.unwrap_or(""),
+            owner_pw.unwrap_or(""),
+        );
+    }
+
     // Write PDF byte stream
     let mut out = Vec::with_capacity(8192);
     let version = if doc.pdf_version.is_empty() {
@@ -94,7 +120,7 @@ pub fn serialize_document(doc: &Document, deflate: bool) -> Result<Vec<u8>> {
     for (&obj_num, obj) in &objects {
         offsets.insert(obj_num, out.len());
         writeln!(out, "{obj_num} 0 obj")?;
-        write_pdf_object(&mut out, obj, deflate)?;
+        write_pdf_object(&mut out, obj, effective_deflate)?;
         out.extend_from_slice(b"\nendobj\n");
     }
 
@@ -118,6 +144,12 @@ pub fn serialize_document(doc: &Document, deflate: bool) -> Result<Vec<u8>> {
     clean_trailer.insert(b"Root".to_vec(), PdfObject::Reference(root_id));
     if let Some(info_ref) = trailer.get(b"Info".as_slice()) {
         clean_trailer.insert(b"Info".to_vec(), info_ref.clone());
+    }
+    if let Some(enc_ref) = trailer.get(b"Encrypt".as_slice()) {
+        clean_trailer.insert(b"Encrypt".to_vec(), enc_ref.clone());
+    }
+    if let Some(id_arr) = trailer.get(b"ID".as_slice()) {
+        clean_trailer.insert(b"ID".to_vec(), id_arr.clone());
     }
 
     out.extend_from_slice(b"trailer\n");

@@ -226,32 +226,69 @@ impl PyDocument {
         })
     }
 
-    /// Serializes the document to PDF bytes.
-    #[pyo3(signature = (*, deflate=false))]
+    /// Serializes the document to PDF bytes, with optional RC4-128 encryption.
+    #[pyo3(signature = (*, deflate=false, encryption=None, user_pw=None, owner_pw=None))]
     pub fn to_bytes<'py>(
         &self,
         py: Python<'py>,
         deflate: bool,
+        encryption: Option<&str>,
+        user_pw: Option<&str>,
+        owner_pw: Option<&str>,
     ) -> PyResult<Bound<'py, pyo3::types::PyBytes>> {
-        let bytes =
-            py.allow_threads(|| self.with_doc(|doc| doc.to_bytes(deflate).map_err(to_py_err)))?;
+        let should_encrypt = encryption.is_some_and(|e| !e.is_empty() && e != "none")
+            || user_pw.is_some()
+            || owner_pw.is_some();
+        let bytes = py.allow_threads(|| {
+            self.with_doc(|doc| {
+                if should_encrypt {
+                    doc.to_bytes_encrypted(deflate, Some(user_pw.unwrap_or("")), owner_pw)
+                        .map_err(to_py_err)
+                } else {
+                    doc.to_bytes(deflate).map_err(to_py_err)
+                }
+            })
+        })?;
         Ok(pyo3::types::PyBytes::new(py, &bytes))
     }
 
     /// Alias for `to_bytes` matching `fitz.Document.write()`.
-    #[pyo3(signature = (*, deflate=false))]
+    #[pyo3(signature = (*, deflate=false, encryption=None, user_pw=None, owner_pw=None))]
     pub fn write<'py>(
         &self,
         py: Python<'py>,
         deflate: bool,
+        encryption: Option<&str>,
+        user_pw: Option<&str>,
+        owner_pw: Option<&str>,
     ) -> PyResult<Bound<'py, pyo3::types::PyBytes>> {
-        self.to_bytes(py, deflate)
+        self.to_bytes(py, deflate, encryption, user_pw, owner_pw)
     }
 
-    /// Saves the document to disk at `filename`.
-    #[pyo3(signature = (filename, *, deflate=false))]
-    pub fn save(&self, py: Python<'_>, filename: PathBuf, deflate: bool) -> PyResult<()> {
-        py.allow_threads(|| self.with_doc(|doc| doc.save(&filename, deflate).map_err(to_py_err)))
+    /// Saves the document to disk at `filename`, with optional RC4-128 encryption.
+    #[pyo3(signature = (filename, *, deflate=false, encryption=None, user_pw=None, owner_pw=None))]
+    pub fn save(
+        &self,
+        py: Python<'_>,
+        filename: PathBuf,
+        deflate: bool,
+        encryption: Option<&str>,
+        user_pw: Option<&str>,
+        owner_pw: Option<&str>,
+    ) -> PyResult<()> {
+        let should_encrypt = encryption.is_some_and(|e| !e.is_empty() && e != "none")
+            || user_pw.is_some()
+            || owner_pw.is_some();
+        py.allow_threads(|| {
+            self.with_doc(|doc| {
+                if should_encrypt {
+                    doc.save_encrypted(&filename, deflate, Some(user_pw.unwrap_or("")), owner_pw)
+                        .map_err(to_py_err)
+                } else {
+                    doc.save(&filename, deflate).map_err(to_py_err)
+                }
+            })
+        })
     }
 
     /// Exports all pages of the document to Markdown (parallelized across pages via `rayon`).

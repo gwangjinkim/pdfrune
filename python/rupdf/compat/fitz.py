@@ -9,6 +9,7 @@ from rupdf._rupdf import (
     Pixmap,
     Point,
     Rect,
+    Table,
     __version__,
     batch_extract,
     batch_render,
@@ -34,4 +35,5 @@ __all__ = [
     "Point",
     "Rect",
     "Matrix",
+    "Table",
 ]

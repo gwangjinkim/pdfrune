@@ -228,30 +228,9 @@ impl Document {
         }
     }
 
-    /// Authenticates an encrypted document with a user/owner password.
+    /// Authenticates an encrypted document with a user/owner password and decrypts objects in-place.
     pub fn authenticate(&mut self, password: &str) -> Result<bool> {
-        if !self.is_encrypted {
-            self.is_authenticated = true;
-            return Ok(true);
-        }
-        // Check standard empty or matching password on /Encrypt dictionary
-        if let Some(enc_dict) = self
-            .resolve_dict_entry(&self.trailer, b"Encrypt")
-            .and_then(PdfObject::as_dict)
-        {
-            if let Some(expected_pw) = enc_dict.get_string_decoded(b"UserPassword") {
-                if expected_pw == password {
-                    self.is_authenticated = true;
-                    return Ok(true);
-                }
-                return Ok(false);
-            }
-        }
-        if !password.is_empty() {
-            self.is_authenticated = true;
-            return Ok(true);
-        }
-        Ok(self.is_authenticated)
+        crate::crypto::authenticate_and_decrypt(self, password)
     }
 
     /// Traverses the `/Catalog -> /Pages` tree and populates `self.pages`.
@@ -576,9 +555,40 @@ impl Document {
         crate::mutate::serialize_document(self, deflate)
     }
 
+    /// Serializes this document with optional RC4-128 user/owner password encryption.
+    pub fn to_bytes_encrypted(
+        &self,
+        deflate: bool,
+        user_pw: Option<&str>,
+        owner_pw: Option<&str>,
+    ) -> Result<Vec<u8>> {
+        crate::mutate::serialize_document_encrypted(self, deflate, user_pw, owner_pw)
+    }
+
     /// Saves this document to a filesystem path.
     pub fn save<P: AsRef<Path>>(&self, path: P, deflate: bool) -> Result<()> {
         crate::mutate::save_document(self, path, deflate)
+    }
+
+    /// Saves this document to a filesystem path with optional user/owner password encryption.
+    pub fn save_encrypted<P: AsRef<Path>>(
+        &self,
+        path: P,
+        deflate: bool,
+        user_pw: Option<&str>,
+        owner_pw: Option<&str>,
+    ) -> Result<()> {
+        let bytes = self.to_bytes_encrypted(deflate, user_pw, owner_pw)?;
+        std::fs::write(path, bytes)?;
+        Ok(())
+    }
+
+    /// Detects structured tables on `page_index`.
+    pub fn find_page_tables(
+        &self,
+        page_index: usize,
+    ) -> Result<Vec<crate::advanced::DetectedTable>> {
+        crate::advanced::find_page_tables(self, page_index)
     }
 
     /// Rasterizes `page_index` at `dpi` into a `Pixmap` (RGBA8888).
