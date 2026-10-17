@@ -3,15 +3,31 @@ LIBDIR = $(TARGET_DIR)/release
 STATLIB = $(LIBDIR)/librupdf_r.a
 PKG_LIBS = -L$(LIBDIR) -lrupdf_r -lws2_32 -luserenv -lbcrypt -lntdll
 
-all: $(SHLIB)
+all: $(SHLIB) cleanup
 
 $(SHLIB): $(STATLIB)
 
-$(STATLIB): FORCE
-	@mkdir -p $(TARGET_DIR)
-	cargo build --release --manifest-path rust/Cargo.toml --target-dir $(TARGET_DIR)
+# CRAN policy forbids writing to $HOME and restricts builds to at most 2 CPUs
+CARGOTMP = $(CURDIR)/.cargo
+export CARGO_HOME = $(CARGOTMP)
+CRANFLAGS = -j 2
 
-FORCE:
+$(STATLIB):
+	@echo "Checking Rust toolchain version prior to compilation on Windows..."
+	@PATH="${PATH}:${USERPROFILE}/.cargo/bin" cargo --version
+	@PATH="${PATH}:${USERPROFILE}/.cargo/bin" rustc --version
+	@mkdir -p $(TARGET_DIR)
+	if [ -f rust/vendor.tar.xz ]; then \
+		tar xf rust/vendor.tar.xz && \
+		mkdir -p $(CARGOTMP) && \
+		cp rust/vendor-config.toml $(CARGOTMP)/config.toml; \
+	fi
+	PATH="${PATH}:${USERPROFILE}/.cargo/bin" cargo build ${CRANFLAGS} --offline --release --manifest-path rust/Cargo.toml --target-dir $(TARGET_DIR)
+	@rm -Rf $(CARGOTMP) vendor || true
+	@rm -Rf $(LIBDIR)/build || true
+
+cleanup: $(SHLIB)
+	@rm -Rf $(STATLIB) $(TARGET_DIR) vendor $(CARGOTMP) || true
 
 clean:
-	rm -rf $(TARGET_DIR)
+	@rm -Rf $(SHLIB) $(OBJECTS) $(STATLIB) $(TARGET_DIR) vendor $(CARGOTMP) symbols.rds || true

@@ -1,0 +1,7 @@
+#!/bin/sh
+export PATH="$PATH:$USERPROFILE/.cargo/bin"
+if command -v cargo >/dev/null 2>&1; then
+  echo "Using $(command -v cargo)"
+  cargo --version
+  rustc --version
+fi

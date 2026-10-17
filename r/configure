@@ -1,0 +1,14 @@
+#!/bin/sh
+PATH="${PATH}:${HOME}/.cargo/bin"
+export PATH
+
+if command -v cargo >/dev/null 2>&1; then
+  echo "Using $(command -v cargo)"
+  cargo --version
+  rustc --version
+else
+  echo "----------------------- [RUST NOT FOUND]---------------------------"
+  echo "The 'cargo' command was not found on PATH. Please install rustc"
+  echo "from: https://www.rust-lang.org/tools/install"
+  exit 1
+fi

@@ -215,7 +215,7 @@ pdf_set_field_value <- function(doc, page = 1L, field_name, value) {
 #' pdf_insert_text(doc, 1L, c(72, 72), "Hello from R!", fontsize = 18)
 pdf_insert_text <- function(doc, page = 1L, point, text, fontsize = 12.0, color = c(0, 0, 0)) {
   stopifnot(inherits(doc, "rupdf_document") && length(point) == 2 && length(color) == 3)
-  .Call(C_rupdf_insert_text, doc$ptr, as.integer(page - 1L), as.numeric(point[1]), as.numeric(point[2]), as.character(text), as.numeric(fontsize), as.numeric(color[1]), as.numeric(color[2]), as.numeric(color[3]))
+  .Call(C_rupdf_insert_text, doc$ptr, as.integer(page - 1L), as.numeric(point[1]), as.numeric(point[2]), as.character(text), as.numeric(fontsize), as.numeric(color))
   invisible(doc)
 }
 

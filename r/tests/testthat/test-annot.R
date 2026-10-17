@@ -2,6 +2,7 @@ test_that("Annotations, true redactions, and AcroForms work", {
   doc <- pdf_new()
   pdf_new_page(doc)
   pdf_insert_text(doc, 1L, c(72, 100), "Confidential Patient SSN: 000-11-2222")
+  pdf_insert_text(doc, 1L, c(72, 140), "Red Title", fontsize = 16, color = c(1, 0, 0))
 
   # Add annotations
   h_xref <- pdf_add_highlight_annot(doc, 1L, c(70, 85, 200, 110))
