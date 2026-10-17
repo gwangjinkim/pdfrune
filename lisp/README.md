@@ -48,45 +48,108 @@
 
 `rupdf` requires an ANSI-compliant Common Lisp implementation with `CFFI` and `YASON`.
 
-### Ultralisp & Quicklisp
+### Quicklisp & Roswell Setup
 
-Once published or cloned to your `~/quicklisp/local-projects/`:
+To use `rupdf` locally before or alongside Ultralisp/Quicklisp releases:
 
+#### Option A: Roswell Local Projects
+Symlink the repository root directly into Roswell's local projects directory:
+
+```bash
+mkdir -p ~/.roswell/local-projects
+ln -s "$(pwd)" ~/.roswell/local-projects/rupdf
+```
+
+Then in Roswell:
 ```lisp
+(ql:register-local-projects)
 (ql:quickload :rupdf)
 ```
 
-### Manual ASDF
+#### Option B: Standard Quicklisp Local Projects
+Symlink the repository root into Quicklisp's local projects directory:
 
-Symlink `rupdf.asd` and `rupdf-test.asd` to your ASDF source registry, then load:
+```bash
+mkdir -p ~/quicklisp/local-projects
+ln -s "$(pwd)" ~/quicklisp/local-projects/rupdf
+```
+
+Then in your REPL:
+```lisp
+(ql:register-local-projects)
+(ql:quickload :rupdf)
+```
+
+#### Option C: Direct ASDF Central Registry
+Push the directory containing `rupdf.asd` into `asdf:*central-registry*`:
 
 ```lisp
+(push #p"/path/to/rupdf/" asdf:*central-registry*)
+;; or (push #p"/path/to/rupdf/lisp/" asdf:*central-registry*)
 (asdf:load-system :rupdf)
 ```
 
 ---
 
-## Shared Library Setup
+## Shared Library Setup & Flexibility
 
 `rupdf` binds to the native C shared library `librupdf_ffi` (or `rupdf_ffi.dll` on Windows).
 
-By default, `rupdf` searches:
-1. `rupdf:*rupdf-library-path*` (if explicitly set)
-2. Build directories: `target/release/`, `target/debug/`
-3. Standard system locations (`/usr/local/lib`, `/opt/homebrew/lib`, `/usr/lib`)
+### 1. Automated Discovery Order
+`rupdf` automatically scans for `librupdf_ffi` in the following priority:
+1. `rupdf:*rupdf-library-path*` (if explicitly set in Lisp)
+2. Environment variables: `RUPDF_LIBRARY_PATH`, `RUPDF_LIB_PATH`, or `RUPDF_LIB`
+3. System ASDF directories: `target/release/`, `../target/release/`, `crates/rupdf-ffi/target/release/`
+4. Standard OS library locations: `/opt/homebrew/lib/` (macOS Apple Silicon), `/usr/local/lib/`, `/usr/lib/`, `~/.local/lib/`
+5. Default CFFI search paths
 
-To build the native shared library from the repository root:
+### 2. Building from Source
+To compile the native library from the repository root:
 
 ```bash
 cargo build --release -p rupdf-ffi
 ```
 
-To point Common Lisp to a custom library path before loading:
-
+Or directly from your Common Lisp REPL:
 ```lisp
-(setf rupdf:*rupdf-library-path* #p"/opt/rupdf/librupdf_ffi.dylib")
-(asdf:load-system :rupdf)
+(rupdf:build-native-library)
 ```
+
+### 3. Interactive Restarts
+If the native shared library has not yet been built, `rupdf` will signal an informative error with interactive restarts:
+* `[BUILD-NATIVE-LIBRARY]`: Automatically invokes `cargo build --release -p rupdf-ffi` and loads the resulting binary.
+* `[RETRY-LOAD]`: Retries candidate search and loading.
+* `[SPECIFY-LIBRARY-PATH]`: Prompts for a custom path to `librupdf_ffi`.
+
+---
+
+## Troubleshooting
+
+### SBCL Runtime / Core Mismatch & `ocicl`
+If you encounter an error like:
+```text
+fatal error encountered in SBCL: core was built for runtime "A" but this is "B"
+debugger invoked on UIOP/RUN-PROGRAM:SUBPROCESS-ERROR: ("ocicl" "install" "rupdf")
+```
+This occurs because:
+1. **ASDF didn't find `:rupdf` locally yet**, triggering your environment's `ocicl` fallback hook.
+2. **`ocicl`'s SBCL runtime binary was updated** by Homebrew or a package manager, causing a hash mismatch with `ocicl`'s dumped `.core` file.
+
+**Resolution**:
+1. Register `rupdf` in your local projects:
+   ```bash
+   ln -s "$(pwd)" ~/.roswell/local-projects/rupdf
+   ```
+   Or in your REPL before loading:
+   ```lisp
+   (push #p"/path/to/rupdf/" asdf:*central-registry*)
+   (asdf:load-system :rupdf)
+   ```
+2. To fix the `ocicl` / SBCL runtime core mismatch, refresh your SBCL binaries:
+   ```bash
+   ros install sbcl-bin
+   # or reinstall/rebuild ocicl
+   ```
 
 ---
 

@@ -11,37 +11,147 @@
   (t (:default "librupdf_ffi")))
 
 (defun find-library-in-candidates ()
-  "Searches for the rupdf foreign library file in well-known relative paths."
-  (let ((candidates
-          (list
-           *rupdf-library-path*
-           ;; In same directory as asdf system
-           (asdf:system-relative-pathname :rupdf "librupdf_ffi.dylib")
-           (asdf:system-relative-pathname :rupdf "librupdf_ffi.so")
-           (asdf:system-relative-pathname :rupdf "rupdf_ffi.dll")
-           ;; In root target/release/ or target/debug/
-           (asdf:system-relative-pathname :rupdf "../target/release/librupdf_ffi.dylib")
-           (asdf:system-relative-pathname :rupdf "../target/release/librupdf_ffi.so")
-           (asdf:system-relative-pathname :rupdf "../target/release/rupdf_ffi.dll")
-           (asdf:system-relative-pathname :rupdf "../target/debug/librupdf_ffi.dylib")
-           (asdf:system-relative-pathname :rupdf "../target/debug/librupdf_ffi.so")
-           (asdf:system-relative-pathname :rupdf "../target/debug/rupdf_ffi.dll")
-           ;; In crates/rupdf-ffi/target/release
-           (asdf:system-relative-pathname :rupdf "../crates/rupdf-ffi/target/release/librupdf_ffi.dylib")
-           (asdf:system-relative-pathname :rupdf "../crates/rupdf-ffi/target/release/librupdf_ffi.so")
-           (asdf:system-relative-pathname :rupdf "../crates/rupdf-ffi/target/release/rupdf_ffi.dll"))))
+  "Searches for the rupdf foreign library file in well-known relative paths and environment variables."
+  (let* ((env-path (or (uiop:getenv "RUPDF_LIBRARY_PATH")
+                       (uiop:getenv "RUPDF_LIB_PATH")
+                       (uiop:getenv "RUPDF_LIB")))
+         (candidates
+           (remove-if
+            #'null
+            (list
+             *rupdf-library-path*
+             (when (and env-path (not (string= env-path "")))
+               (pathname env-path))
+             ;; In same directory as asdf system
+             (asdf:system-relative-pathname :rupdf "librupdf_ffi.dylib")
+             (asdf:system-relative-pathname :rupdf "librupdf_ffi.so")
+             (asdf:system-relative-pathname :rupdf "rupdf_ffi.dll")
+             ;; If loaded from project root
+             (asdf:system-relative-pathname :rupdf "target/release/librupdf_ffi.dylib")
+             (asdf:system-relative-pathname :rupdf "target/release/librupdf_ffi.so")
+             (asdf:system-relative-pathname :rupdf "target/release/rupdf_ffi.dll")
+             ;; If loaded from lisp/
+             (asdf:system-relative-pathname :rupdf "../target/release/librupdf_ffi.dylib")
+             (asdf:system-relative-pathname :rupdf "../target/release/librupdf_ffi.so")
+             (asdf:system-relative-pathname :rupdf "../target/release/rupdf_ffi.dll")
+             ;; crates/rupdf-ffi/target/release
+             (asdf:system-relative-pathname :rupdf "../crates/rupdf-ffi/target/release/librupdf_ffi.dylib")
+             (asdf:system-relative-pathname :rupdf "../crates/rupdf-ffi/target/release/librupdf_ffi.so")
+             (asdf:system-relative-pathname :rupdf "../crates/rupdf-ffi/target/release/rupdf_ffi.dll")
+             ;; Debug builds
+             (asdf:system-relative-pathname :rupdf "target/debug/librupdf_ffi.dylib")
+             (asdf:system-relative-pathname :rupdf "target/debug/librupdf_ffi.so")
+             (asdf:system-relative-pathname :rupdf "../target/debug/librupdf_ffi.dylib")
+             (asdf:system-relative-pathname :rupdf "../target/debug/librupdf_ffi.so")
+             ;; Common Unix / macOS locations
+             #p"/opt/homebrew/lib/librupdf_ffi.dylib"
+             #p"/usr/local/lib/librupdf_ffi.dylib"
+             #p"/usr/local/lib/librupdf_ffi.so"
+             #p"/usr/lib/librupdf_ffi.so"
+             (let ((home (uiop:getenv "HOME")))
+               (when home
+                 (merge-pathnames ".local/lib/librupdf_ffi.so" (uiop:ensure-directory-pathname home))))))))
     (dolist (c candidates)
       (when (and c (probe-file c))
         (return (namestring (truename c)))))))
 
-(defun ensure-library-loaded ()
-  "Ensures the rupdf foreign library is loaded into the Lisp image."
-  (unless *rupdf-library-loaded-p*
-    (let ((found (find-library-in-candidates)))
-      (if found
+(defun build-native-library (&key (release t))
+  "Attempts to invoke cargo to compile librupdf_ffi. Returns T on success, NIL otherwise."
+  (let* ((sys-dir (asdf:system-source-directory :rupdf))
+         (root-dir (cond
+                     ((probe-file (merge-pathnames "Cargo.toml" sys-dir))
+                      sys-dir)
+                     ((probe-file (merge-pathnames "../Cargo.toml" sys-dir))
+                      (uiop:pathname-parent-directory-pathname sys-dir))
+                     (t nil))))
+    (unless root-dir
+      (warn "Could not locate root Cargo.toml relative to rupdf system directory ~A" sys-dir)
+      (return-from build-native-library nil))
+    (let ((args (append (list "cargo" "build" "-p" "rupdf-ffi")
+                        (when release (list "--release")))))
+      (handler-case
+          (progn
+            (uiop:run-program args
+                              :directory root-dir
+                              :output :interactive
+                              :error-output :interactive)
+            t)
+        (error (e)
+          (warn "Failed to execute cargo build: ~A" e)
+          nil)))))
+
+(defun load-rupdf-library (&optional path)
+  "Explicitly loads the rupdf foreign library from PATH or candidate directories."
+  (when path
+    (setf *rupdf-library-path* (pathname path)))
+  (let ((found (or (and *rupdf-library-path* (probe-file *rupdf-library-path*))
+                   (find-library-in-candidates))))
+    (if found
+        (progn
           (cffi:load-foreign-library found)
-          (cffi:use-foreign-library librupdf)))
-    (setf *rupdf-library-loaded-p* t)))
+          (setf *rupdf-library-loaded-p* t))
+        (cffi:use-foreign-library librupdf))))
+
+(defun ensure-library-loaded ()
+  "Ensures the rupdf foreign library is loaded into the Lisp image.
+Provides interactive restarts and helpful diagnostics if the native binary is missing."
+  (unless *rupdf-library-loaded-p*
+    (tagbody
+     :retry
+       (let ((found (find-library-in-candidates)))
+         (if found
+             (handler-case
+                 (progn
+                   (cffi:load-foreign-library found)
+                   (setf *rupdf-library-loaded-p* t))
+               (error (err)
+                 (restart-case
+                     (error 'rupdf-error
+                            :message (format nil "Failed to load foreign library ~A: ~A" found err))
+                   (retry-load ()
+                     :report "Retry loading the foreign library."
+                     (go :retry))
+                   (specify-library-path (path)
+                     :report "Specify an alternative path to the library."
+                     :interactive (lambda ()
+                                    (format *query-io* "Enter path to librupdf_ffi: ")
+                                    (finish-output *query-io*)
+                                    (list (read-line *query-io*)))
+                     (setf *rupdf-library-path* (pathname path))
+                     (go :retry)))))
+             (handler-case
+                 (progn
+                   (cffi:use-foreign-library librupdf)
+                   (setf *rupdf-library-loaded-p* t))
+               (error (err)
+                 (restart-case
+                     (error 'rupdf-error
+                            :message
+                            (format nil
+                                    "Could not locate the rupdf foreign shared library (librupdf_ffi).~%~%~
+                                     To fix this:~%~
+                                       1. Compile the Rust FFI library:~%~
+                                          cargo build --release -p rupdf-ffi~%~
+                                       2. Or set the RUPDF_LIBRARY_PATH environment variable:~%~
+                                          export RUPDF_LIBRARY_PATH=/path/to/librupdf_ffi.dylib (or .so)~%~
+                                       3. Or set rupdf:*rupdf-library-path* in Lisp:~%~
+                                          (setf rupdf:*rupdf-library-path* #p\"/path/to/librupdf_ffi.dylib\")~%~%~
+                                     Original error: ~A" err))
+                   (retry-load ()
+                     :report "Retry searching and loading the rupdf foreign library."
+                     (go :retry))
+                   (build-native-library ()
+                     :report "Attempt to build librupdf_ffi using 'cargo build --release -p rupdf-ffi'."
+                     (when (build-native-library :release t)
+                       (go :retry)))
+                   (specify-library-path (path)
+                     :report "Specify an explicit path to librupdf_ffi."
+                     :interactive (lambda ()
+                                    (format *query-io* "Enter path to librupdf_ffi: ")
+                                    (finish-output *query-io*)
+                                    (list (read-line *query-io*)))
+                     (setf *rupdf-library-path* (pathname path))
+                     (go :retry))))))))))
 
 ;;; Core / Lifecycle CFFI Definitions
 
