@@ -1,0 +1,17 @@
+TARGET_DIR = $(CURDIR)/rust/target
+LIBDIR = $(TARGET_DIR)/release
+STATLIB = $(LIBDIR)/librupdf_r.a
+PKG_LIBS = -L$(LIBDIR) -lrupdf_r -lpthread -ldl -lm
+
+all: $(SHLIB)
+
+$(SHLIB): $(STATLIB)
+
+$(STATLIB): FORCE
+	@mkdir -p $(TARGET_DIR)
+	cargo build --release --manifest-path rust/Cargo.toml --target-dir $(TARGET_DIR)
+
+FORCE:
+
+clean:
+	rm -rf $(TARGET_DIR)

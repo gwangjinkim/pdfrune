@@ -1,12 +1,13 @@
 # rupdf
 
-**Ultra-Fast, Memory-Safe, Permissive PDF Engine in Rust & Python**
+**Ultra-Fast, Memory-Safe, Permissive PDF Engine in Rust, Python & R**
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 [![Rust](https://img.shields.io/badge/Rust-2021%20Edition-orange.svg)](crates/rupdf-core)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](python/rupdf)
+[![CRAN](https://img.shields.io/badge/CRAN-rupdf-276DC3.svg)](r/)
 
-`rupdf` is a clean-room, high-performance PDF engine written in 100% memory-safe Rust ([`rupdf-core`](crates/rupdf-core)) with zero-overhead Python bindings ([`rupdf`](python/rupdf)). It provides full functional parity with PyMuPDF (`fitz`) workflows—plus native multi-core parallelism, structured Markdown/HTML export, table detection, SIMD-accelerated search, and AI/RAG semantic chunking—under a **100% permissive `MIT OR Apache-2.0` dual license** with zero AGPL restrictions.
+`rupdf` is a clean-room, high-performance PDF engine written in 100% memory-safe Rust ([`rupdf-core`](crates/rupdf-core)) with zero-overhead Python bindings ([`rupdf`](python/rupdf)) and CRAN-compliant R bindings ([`r/`](r/)). It provides full functional parity with PyMuPDF (`fitz`) workflows—plus native multi-core parallelism, structured Markdown/HTML export, table detection, SIMD-accelerated search, and AI/RAG semantic chunking—under a **100% permissive `MIT OR Apache-2.0` dual license** with zero AGPL restrictions.
 
 ---
 
@@ -25,10 +26,11 @@
   - [7. Merging, Splitting & Password Encryption (RC4-128)](#7-merging-splitting--password-encryption-rc4-128)
   - [8. AI / RAG Chunker, Markdown/HTML & Multi-Core Batch Processing](#8-ai--rag-chunker-markdownhtml--multi-core-batch-processing)
   - [9. Drop-In PyMuPDF (`fitz`) Compatibility](#9-drop-in-pymupdf-fitz-compatibility)
+- [R Package Quickstart & CRAN (`uvr`)](#r-package-quickstart--cran-uvr)
 - [Using `rupdf-core` Directly in Rust](#using-rupdf-core-directly-in-rust)
 - [Documentation](#documentation)
 - [Development & Testing](#development--testing)
-- [License](#license)
+- [Author & License](#author--license)
 
 ---
 
@@ -290,6 +292,53 @@ with fitz.open("report.pdf") as doc:
 
 ---
 
+## R Package Quickstart & CRAN (`uvr`)
+
+The R package for `rupdf` provides full access to the high-performance Rust PDF engine with idiomatic `pdf_*` functions and complete `roxygen2` documentation:
+
+### Installation via `uvr`
+
+Manage dependencies using [`uvr`](https://github.com/astral-sh/uvr):
+
+```bash
+uvr add rupdf
+uvr sync
+```
+
+### R Code Examples
+
+```r
+library(rupdf)
+
+# 1. Open and extract plain text or layout words
+doc <- pdf_open("report.pdf")
+cat("Page count:", pdf_page_count(doc), "\n")
+text <- pdf_extract_text(doc, page = 1L)
+words <- pdf_extract_words(doc, page = 1L)
+
+# 2. Detect tabular data and convert directly to data.frame
+tables <- pdf_find_tables(doc, page = 1L)
+if (length(tables) > 0) {
+  df <- tables[[1]]$to_dataframe()
+  print(head(df))
+}
+
+# 3. Rasterize page to RGBA8888 Pixmap & save PNG
+pix <- pdf_render(doc, page = 1L, dpi = 150.0)
+pix$save("page1.png")
+
+# 4. Outlines (Table of Contents) and Hyperlinks
+toc <- pdf_get_toc(doc)
+links <- pdf_get_links(doc, page = 1L)
+
+# 5. True Redaction & ISO 32000 Encryption
+pdf_add_redact_annot(doc, page = 1L, rect = c(72, 100, 250, 130))
+pdf_apply_redactions(doc, page = 1L)
+pdf_save(doc, "redacted.pdf", encryption = "rc4-128", user_pw = "secret")
+```
+
+---
+
 ## Using `rupdf-core` Directly in Rust
 
 `rupdf-core` is a standalone, zero-Python Rust library suitable for CLI tools, backend microservices, WebAssembly targets, or native desktop apps:
@@ -329,6 +378,7 @@ fn main() -> rupdf_core::Result<()> {
 Detailed guides and API references are located in the [`docs/`](docs/) directory:
 
 - [**Python API Reference**](docs/python-api.md) — Complete reference for `Document`, `Page`, `Pixmap`, `Table`, `Rect`, `Point`, `Matrix`, and module-level functions.
+- [**R Package Reference**](docs/r-api.md) — Complete reference for R functions (`pdf_open`, `pdf_render`, `pdf_find_tables`, `pdf_extract_text`, etc.) and `uvr` usage.
 - [**Rust (`rupdf-core`) API Reference**](docs/rust-api.md) — Guide to using `rupdf-core` directly in Rust applications.
 - [**PyMuPDF (`fitz`) Migration Guide**](docs/migration-from-pymupdf.md) — Side-by-side cheat sheet for migrating from PyMuPDF to `rupdf`.
 - [**Engine Architecture & Security**](docs/architecture.md) — Deep dive into the ISO 32000 parser, XREF auto-repair, font CMap engine, `tiny-skia`/`ab_glyph` renderer, true redaction scrubber, and RC4-128 crypto handler.
@@ -337,7 +387,7 @@ Detailed guides and API references are located in the [`docs/`](docs/) directory
 
 ## Development & Testing
 
-All Python workflows use `uv` and all Rust crates are checked with `cargo`:
+All Python workflows use `uv`, R workflows use `uvr`, and all Rust crates are checked with `cargo`:
 
 ```bash
 # Format, lint, and run Rust unit tests
@@ -347,11 +397,16 @@ cargo test
 
 # Run the full Python test suite
 uv run pytest
+
+# Run the full R test suite
+cd r && uvr run run_tests.R
 ```
 
 ---
 
-## License
+## Author & License
+
+**Author**: Gwang-Jin Kim (<gwang.jin.kim.phd@gmail.com>)
 
 Dual-licensed under either of:
 

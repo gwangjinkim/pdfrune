@@ -1,0 +1,12 @@
+^uvr\.toml$
+^uvr\.lock$
+^\.uvr$
+^\.Rprofile$
+^\.r-version$
+^run_tests\.R$
+^src/rust/target$
+^src/rust/Cargo\.lock$
+^src/rust/rupdf-core/target$
+^src/.*\.o$
+^src/.*\.so$
+^src/.*\.dll$

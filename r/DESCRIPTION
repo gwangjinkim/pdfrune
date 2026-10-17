@@ -1,0 +1,25 @@
+Package: rupdf
+Title: Ultra-Fast, Memory-Safe, Permissive PDF Engine
+Version: 0.1.0
+Authors@R: person("Gwang-Jin", "Kim", email = "gwang.jin.kim.phd@gmail.com", role = c("aut", "cre"))
+Description: Clean-room, high-performance, memory-safe, and permissively-licensed
+    PDF engine written in Rust with R bindings. Provides fast text, word, block,
+    layout, and table extraction, rasterization to RGBA pixel buffers and vector SVG,
+    document creation and manipulation, outlines (table of contents), hyperlinks,
+    image extraction and insertion, annotations, true content-stream redactions,
+    interactive AcroForm widgets, multi-threaded batch processing, and ISO 32000
+    standard encryption. Built strictly against open ISO 32000 specifications
+    under MIT or Apache-2.0 licenses with zero AGPL restrictions.
+License: MIT + file LICENSE | Apache License 2.0
+URL: https://github.com/gwangjinkim/rupdf
+BugReports: https://github.com/gwangjinkim/rupdf/issues
+Depends:
+    R (>= 4.0.0)
+Imports:
+    jsonlite
+Suggests:
+    testthat (>= 3.0.0)
+SystemRequirements: Cargo (Rust's package manager)
+Encoding: UTF-8
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.1

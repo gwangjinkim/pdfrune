@@ -1,0 +1,10 @@
+[project]
+name = "rupdf"
+r-version = ">= 4.0.0"
+
+[dev-dependencies]
+roxygen2 = "*"
+testthat = "*"
+
+[dependencies]
+jsonlite = "*"
