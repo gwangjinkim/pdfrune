@@ -1,4 +1,5 @@
 pub mod advanced;
+pub mod annot;
 pub mod document;
 pub mod error;
 pub mod geometry;
@@ -12,6 +13,10 @@ pub mod text;
 pub use advanced::{
     batch_extract_bytes, batch_render_pages, doc_to_html, doc_to_markdown, doc_to_rag_chunks,
     page_to_html, page_to_markdown, run_benchmark, search_document, BenchmarkMetrics, RagChunk,
+};
+pub use annot::{
+    add_page_annot, add_page_widget, apply_page_redactions, delete_page_annot, get_page_annots,
+    get_page_widgets, set_page_field_value, AnnotInfo, WidgetInfo,
 };
 pub use document::Document;
 pub use error::{Result, RupdfError};

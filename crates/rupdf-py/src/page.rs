@@ -437,9 +437,203 @@ impl PyPage {
         })
     }
 
+    /// Returns all annotations on the page as a list of dictionaries.
+    pub fn annots<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, pyo3::types::PyDict>>> {
+        let list =
+            self.with_doc(|doc, _| doc.get_page_annots(self.page_index).map_err(to_py_err))?;
+        let mut out = Vec::with_capacity(list.len());
+        for a in list {
+            out.push(annot_to_pydict(py, a)?);
+        }
+        Ok(out)
+    }
+
+    /// Adds a yellow highlight annotation (`/Subtype /Highlight`) over `rect`.
+    pub fn add_highlight_annot<'py>(
+        &self,
+        py: Python<'py>,
+        rect: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+        let r = extract_rect(rect)?;
+        let info = self.with_doc_mut(|doc| {
+            doc.add_page_annot(self.page_index, "Highlight", r, None, [1.0, 1.0, 0.0], None)
+                .map_err(to_py_err)
+        })?;
+        annot_to_pydict(py, info)
+    }
+
+    /// Adds a text (sticky note) annotation (`/Subtype /Text`) at `point`.
+    pub fn add_text_annot<'py>(
+        &self,
+        py: Python<'py>,
+        point: &crate::rect::PyPoint,
+        text: &str,
+    ) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+        let r = rupdf_core::Rect::new(
+            point.inner.x,
+            point.inner.y,
+            point.inner.x + 20.0,
+            point.inner.y + 20.0,
+        );
+        let info = self.with_doc_mut(|doc| {
+            doc.add_page_annot(
+                self.page_index,
+                "Text",
+                r,
+                Some(text),
+                [1.0, 0.9, 0.2],
+                None,
+            )
+            .map_err(to_py_err)
+        })?;
+        annot_to_pydict(py, info)
+    }
+
+    /// Adds a rectangle annotation (`/Subtype /Square`) over `rect`.
+    pub fn add_rect_annot<'py>(
+        &self,
+        py: Python<'py>,
+        rect: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+        let r = extract_rect(rect)?;
+        let info = self.with_doc_mut(|doc| {
+            doc.add_page_annot(self.page_index, "Square", r, None, [1.0, 0.0, 0.0], None)
+                .map_err(to_py_err)
+        })?;
+        annot_to_pydict(py, info)
+    }
+
+    /// Deletes an annotation dictionary (as returned by `annots()` or `add_*_annot()`) from the page.
+    pub fn delete_annot(&self, annot: &Bound<'_, pyo3::types::PyDict>) -> PyResult<()> {
+        let xref: u32 = annot
+            .get_item("xref")?
+            .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("annot dict missing 'xref'"))?
+            .extract()?;
+        self.with_doc_mut(|doc| {
+            doc.delete_page_annot(self.page_index, xref)
+                .map_err(to_py_err)
+        })
+    }
+
+    /// Adds a redaction annotation (`/Subtype /Redact`) over `rect`.
+    #[pyo3(signature = (rect, text=None, fill=(0.0, 0.0, 0.0)))]
+    pub fn add_redact_annot<'py>(
+        &self,
+        py: Python<'py>,
+        rect: &Bound<'py, PyAny>,
+        text: Option<&str>,
+        fill: (f64, f64, f64),
+    ) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+        let r = extract_rect(rect)?;
+        let info = self.with_doc_mut(|doc| {
+            doc.add_page_annot(
+                self.page_index,
+                "Redact",
+                r,
+                None,
+                [fill.0, fill.1, fill.2],
+                text,
+            )
+            .map_err(to_py_err)
+        })?;
+        annot_to_pydict(py, info)
+    }
+
+    /// Applies all pending redaction annotations on the page, permanently scrubbing underlying text.
+    pub fn apply_redactions(&self) -> PyResult<usize> {
+        self.with_doc_mut(|doc| {
+            doc.apply_page_redactions(self.page_index)
+                .map_err(to_py_err)
+        })
+    }
+
+    /// Returns all interactive AcroForm `/Widget` fields on the page.
+    pub fn widgets<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, pyo3::types::PyDict>>> {
+        let list =
+            self.with_doc(|doc, _| doc.get_page_widgets(self.page_index).map_err(to_py_err))?;
+        let mut out = Vec::with_capacity(list.len());
+        for w in list {
+            out.push(widget_to_pydict(py, w)?);
+        }
+        Ok(out)
+    }
+
+    /// Adds an interactive AcroForm `/Widget` field to the page.
+    pub fn add_widget<'py>(
+        &self,
+        py: Python<'py>,
+        widget: &Bound<'py, pyo3::types::PyDict>,
+    ) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+        let field_name: String = widget
+            .get_item("field_name")?
+            .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("widget missing 'field_name'"))?
+            .extract()?;
+        let field_type: String = match widget.get_item("field_type")? {
+            Some(v) if !v.is_none() => v.extract()?,
+            _ => "text".to_string(),
+        };
+        let rect_obj = widget
+            .get_item("rect")?
+            .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("widget missing 'rect'"))?;
+        let rect = extract_rect(&rect_obj)?;
+        let field_value: String = match widget.get_item("field_value")? {
+            Some(v) if !v.is_none() => v.extract()?,
+            _ => String::new(),
+        };
+
+        let info = self.with_doc_mut(|doc| {
+            doc.add_page_widget(
+                self.page_index,
+                &field_name,
+                &field_type,
+                rect,
+                &field_value,
+            )
+            .map_err(to_py_err)
+        })?;
+        widget_to_pydict(py, info)
+    }
+
+    /// Updates the value of an AcroForm field on the page by `field_name`.
+    pub fn set_field_value(&self, field_name: &str, value: &str) -> PyResult<bool> {
+        self.with_doc_mut(|doc| {
+            doc.set_page_field_value(self.page_index, field_name, value)
+                .map_err(to_py_err)
+        })
+    }
+
     fn __repr__(&self) -> String {
         format!("Page({})", self.page_index)
     }
+}
+
+fn annot_to_pydict<'py>(
+    py: Python<'py>,
+    a: rupdf_core::AnnotInfo,
+) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+    let d = pyo3::types::PyDict::new(py);
+    d.set_item("xref", a.xref)?;
+    d.set_item("type", a.subtype)?;
+    d.set_item("rect", PyRect { inner: a.rect })?;
+    d.set_item("contents", a.contents)?;
+    d.set_item("color", (a.color[0], a.color[1], a.color[2]))?;
+    if let Some(ot) = a.overlay_text {
+        d.set_item("overlay_text", ot)?;
+    }
+    Ok(d)
+}
+
+fn widget_to_pydict<'py>(
+    py: Python<'py>,
+    w: rupdf_core::WidgetInfo,
+) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+    let d = pyo3::types::PyDict::new(py);
+    d.set_item("xref", w.xref)?;
+    d.set_item("field_name", w.field_name)?;
+    d.set_item("field_type", w.field_type)?;
+    d.set_item("field_value", w.field_value)?;
+    d.set_item("rect", PyRect { inner: w.rect })?;
+    Ok(d)
 }
 
 pub type ImageInfoTuple = (u32, u32, u32, u32, u8, String, String, String, String);
