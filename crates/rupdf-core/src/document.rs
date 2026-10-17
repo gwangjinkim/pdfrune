@@ -552,6 +552,23 @@ impl Document {
         }
         Ok(())
     }
+
+    /// Extracts plain text in reading order for the page at `page_index`.
+    pub fn extract_page_text(&self, page_index: usize) -> Result<String> {
+        let layout = self.page_layout(page_index)?;
+        Ok(layout.plain_text())
+    }
+
+    /// Computes the structured `PageLayout` (blocks, lines, words, bounding boxes) for `page_index`.
+    pub fn page_layout(&self, page_index: usize) -> Result<crate::text::PageLayout> {
+        crate::text::PageLayout::from_document(self, page_index)
+    }
+
+    /// Searches for `needle` on `page_index` and returns matching bounding boxes.
+    pub fn search_page(&self, page_index: usize, needle: &str) -> Result<Vec<Rect>> {
+        let layout = self.page_layout(page_index)?;
+        Ok(layout.search(needle))
+    }
 }
 
 impl Default for Document {

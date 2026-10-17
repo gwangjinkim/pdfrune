@@ -6,6 +6,9 @@ use pyo3::prelude::*;
 use crate::doc::{to_py_err, DocState};
 use crate::rect::PyRect;
 
+pub type WordTuple = (f64, f64, f64, f64, String, usize, usize, usize);
+pub type BlockTuple = (f64, f64, f64, f64, String, usize, u8);
+
 /// Python wrapper for a single PDF `Page`.
 #[pyclass(name = "Page", module = "rupdf")]
 #[derive(Clone)]
@@ -146,6 +149,93 @@ impl PyPage {
             doc.set_page_rotation(self.page_index, deg)
                 .map_err(to_py_err)
         })
+    }
+
+    /// Extracts plain text from the page in reading order (releases the GIL).
+    pub fn extract_text(&self, py: Python<'_>) -> PyResult<String> {
+        py.allow_threads(|| {
+            self.with_doc(|doc, _| doc.extract_page_text(self.page_index).map_err(to_py_err))
+        })
+    }
+
+    /// Extracts words as `(x0, y0, x1, y1, word, block_no, line_no, word_no)` tuples.
+    pub fn extract_words(&self, py: Python<'_>) -> PyResult<Vec<WordTuple>> {
+        let words = py.allow_threads(|| {
+            self.with_doc(|doc, _| {
+                let layout = doc.page_layout(self.page_index).map_err(to_py_err)?;
+                Ok(layout.words())
+            })
+        })?;
+        Ok(words
+            .into_iter()
+            .map(|w| {
+                (
+                    w.rect.x0, w.rect.y0, w.rect.x1, w.rect.y1, w.text, w.block_no, w.line_no,
+                    w.word_no,
+                )
+            })
+            .collect())
+    }
+
+    /// Extracts text blocks as `(x0, y0, x1, y1, text, block_no, block_type)` tuples.
+    pub fn extract_blocks(&self, py: Python<'_>) -> PyResult<Vec<BlockTuple>> {
+        let blocks = py.allow_threads(|| {
+            self.with_doc(|doc, _| {
+                let layout = doc.page_layout(self.page_index).map_err(to_py_err)?;
+                Ok(layout.blocks)
+            })
+        })?;
+        Ok(blocks
+            .into_iter()
+            .map(|b| {
+                let text = b.text();
+                (
+                    b.rect.x0,
+                    b.rect.y0,
+                    b.rect.x1,
+                    b.rect.y1,
+                    text,
+                    b.block_no,
+                    b.block_type,
+                )
+            })
+            .collect())
+    }
+
+    /// PyMuPDF-compatible `get_text(option="text" | "words" | "blocks" | "json")`.
+    #[pyo3(signature = (option="text"))]
+    pub fn get_text<'py>(&self, py: Python<'py>, option: &str) -> PyResult<Bound<'py, PyAny>> {
+        match option {
+            "text" | "" => Ok(self.extract_text(py)?.into_pyobject(py)?.into_any()),
+            "words" => Ok(self.extract_words(py)?.into_pyobject(py)?.into_any()),
+            "blocks" => Ok(self.extract_blocks(py)?.into_pyobject(py)?.into_any()),
+            "json" => {
+                let json_str = py.allow_threads(|| {
+                    self.with_doc(|doc, _| {
+                        let layout = doc.page_layout(self.page_index).map_err(to_py_err)?;
+                        serde_json::to_string_pretty(&layout)
+                            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+                    })
+                })?;
+                Ok(json_str.into_pyobject(py)?.into_any())
+            }
+            other => Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Unsupported get_text option: {other}"
+            ))),
+        }
+    }
+
+    /// Searches for `needle` (case-insensitive) on the page and returns matching `Rect` list.
+    pub fn search(&self, py: Python<'_>, needle: &str) -> PyResult<Vec<PyRect>> {
+        let rects = py.allow_threads(|| {
+            self.with_doc(|doc, _| doc.search_page(self.page_index, needle).map_err(to_py_err))
+        })?;
+        Ok(rects.into_iter().map(|inner| PyRect { inner }).collect())
+    }
+
+    /// PyMuPDF alias for `search(needle)`.
+    pub fn search_for(&self, py: Python<'_>, needle: &str) -> PyResult<Vec<PyRect>> {
+        self.search(py, needle)
     }
 
     fn __repr__(&self) -> String {

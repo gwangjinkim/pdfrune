@@ -31,6 +31,14 @@ features = ["pyo3/extension-module"]
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
 
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "Cargo.toml" },
+    { file = "crates/**/*.rs" },
+    { file = "crates/**/Cargo.toml" },
+]
+
 [dependency-groups]
 dev = [
     "maturin>=1.15.0",

@@ -3,11 +3,13 @@ pub mod error;
 pub mod geometry;
 pub mod page;
 pub mod parser;
+pub mod text;
 
 pub use document::Document;
 pub use error::{Result, RupdfError};
 pub use geometry::{Matrix, Point, Rect};
 pub use page::Page;
+pub use text::{PageLayout, TextBlock, TextLine, TextWord};
 
 /// Returns the version of the `rupdf-core` engine.
 pub fn version() -> &'static str {
