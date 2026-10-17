@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/rupdf-core",
     "crates/rupdf-py",
+    "crates/rupdf-ffi",
 ]
 
 [workspace.package]
