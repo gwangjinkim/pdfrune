@@ -276,6 +276,33 @@ impl PyPage {
         })
     }
 
+    /// Rasterizes the page to an RGBA8888 `Pixmap` at `dpi` (releases the GIL).
+    #[pyo3(signature = (dpi=72.0))]
+    pub fn render(&self, py: Python<'_>, dpi: f64) -> PyResult<crate::pixmap::PyPixmap> {
+        let inner = py.allow_threads(|| {
+            self.with_doc(|doc, _| doc.render_page(self.page_index, dpi).map_err(to_py_err))
+        })?;
+        Ok(crate::pixmap::PyPixmap { inner })
+    }
+
+    /// PyMuPDF-compatible `get_pixmap(dpi=72.0)`.
+    #[pyo3(signature = (*, dpi=72.0))]
+    pub fn get_pixmap(&self, py: Python<'_>, dpi: f64) -> PyResult<crate::pixmap::PyPixmap> {
+        self.render(py, dpi)
+    }
+
+    /// Exports the page as a scalable SVG string.
+    pub fn to_svg(&self, py: Python<'_>) -> PyResult<String> {
+        py.allow_threads(|| {
+            self.with_doc(|doc, _| doc.render_page_svg(self.page_index).map_err(to_py_err))
+        })
+    }
+
+    /// PyMuPDF alias `get_svg_image()` for `to_svg()`.
+    pub fn get_svg_image(&self, py: Python<'_>) -> PyResult<String> {
+        self.to_svg(py)
+    }
+
     fn __repr__(&self) -> String {
         format!("Page({})", self.page_index)
     }
