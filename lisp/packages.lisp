@@ -8,9 +8,12 @@
   (:nicknames :cl-rupdf)
   (:use :cl)
   (:export
-   ;; Specials
+   ;; Specials & Library Management
    #:*rupdf-library-path*
    #:*default-dpi*
+   #:ensure-library-loaded
+   #:load-rupdf-library
+   #:build-native-library
 
    ;; Conditions
    #:rupdf-error
