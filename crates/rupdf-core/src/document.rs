@@ -485,6 +485,73 @@ impl Document {
 
         Ok(combined)
     }
+
+    /// Sets the rotation (in degrees clockwise) of the page at `page_index`.
+    pub fn set_page_rotation(&mut self, page_index: usize, rotation: i64) -> Result<()> {
+        let norm = normalize_rotation(rotation);
+        let obj_id = self.page(page_index)?.object_id;
+        if let Some(page) = self.pages.get_mut(page_index) {
+            page.rotation = norm;
+        }
+        if let Some(dict) = self
+            .objects
+            .get_mut(&obj_id.0)
+            .and_then(PdfObject::as_dict_mut)
+        {
+            dict.insert(b"Rotate".to_vec(), PdfObject::Int(norm as i64));
+        }
+        Ok(())
+    }
+
+    /// Sets the `/MediaBox` of the page at `page_index`.
+    pub fn set_page_mediabox(&mut self, page_index: usize, rect: Rect) -> Result<()> {
+        let norm = rect.normalize();
+        let obj_id = self.page(page_index)?.object_id;
+        if let Some(page) = self.pages.get_mut(page_index) {
+            page.mediabox = norm;
+        }
+        if let Some(dict) = self
+            .objects
+            .get_mut(&obj_id.0)
+            .and_then(PdfObject::as_dict_mut)
+        {
+            dict.insert(
+                b"MediaBox".to_vec(),
+                PdfObject::Array(vec![
+                    PdfObject::Real(norm.x0),
+                    PdfObject::Real(norm.y0),
+                    PdfObject::Real(norm.x1),
+                    PdfObject::Real(norm.y1),
+                ]),
+            );
+        }
+        Ok(())
+    }
+
+    /// Sets the `/CropBox` of the page at `page_index`.
+    pub fn set_page_cropbox(&mut self, page_index: usize, rect: Rect) -> Result<()> {
+        let norm = rect.normalize();
+        let obj_id = self.page(page_index)?.object_id;
+        if let Some(page) = self.pages.get_mut(page_index) {
+            page.cropbox = norm;
+        }
+        if let Some(dict) = self
+            .objects
+            .get_mut(&obj_id.0)
+            .and_then(PdfObject::as_dict_mut)
+        {
+            dict.insert(
+                b"CropBox".to_vec(),
+                PdfObject::Array(vec![
+                    PdfObject::Real(norm.x0),
+                    PdfObject::Real(norm.y0),
+                    PdfObject::Real(norm.x1),
+                    PdfObject::Real(norm.y1),
+                ]),
+            );
+        }
+        Ok(())
+    }
 }
 
 impl Default for Document {
