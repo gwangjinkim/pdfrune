@@ -16,11 +16,31 @@ fn version() -> &'static str {
     rupdf_core::version()
 }
 
+/// Runs a multi-core Rust benchmark over `pages` synthesized pages and returns timing metrics.
+#[pyfunction]
+#[pyo3(signature = (pages=50))]
+fn benchmark<'py>(py: Python<'py>, pages: usize) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+    let m = py
+        .allow_threads(|| rupdf_core::run_benchmark(pages))
+        .map_err(crate::doc::to_py_err)?;
+    let dict = pyo3::types::PyDict::new(py);
+    dict.set_item("pages", m.pages)?;
+    dict.set_item("parse_ms", m.parse_ms)?;
+    dict.set_item("extract_ms", m.extract_ms)?;
+    dict.set_item("search_ms", m.search_ms)?;
+    dict.set_item("markdown_ms", m.markdown_ms)?;
+    dict.set_item("render_ms", m.render_ms)?;
+    dict.set_item("pages_per_sec_extract", m.pages_per_sec_extract)?;
+    dict.set_item("pages_per_sec_render", m.pages_per_sec_render)?;
+    Ok(dict)
+}
+
 /// `_rupdf` native extension module implemented in Rust.
 #[pymodule]
 fn _rupdf(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", rupdf_core::version())?;
     m.add_function(wrap_pyfunction!(version, m)?)?;
+    m.add_function(wrap_pyfunction!(benchmark, m)?)?;
     m.add_function(wrap_pyfunction!(open_document, m)?)?;
     m.add_function(wrap_pyfunction!(merge_pdfs, m)?)?;
     m.add_function(wrap_pyfunction!(batch_extract, m)?)?;

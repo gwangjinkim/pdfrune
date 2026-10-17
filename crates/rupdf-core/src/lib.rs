@@ -10,7 +10,7 @@ pub mod text;
 
 pub use advanced::{
     batch_extract_bytes, batch_render_pages, doc_to_html, doc_to_markdown, doc_to_rag_chunks,
-    page_to_html, page_to_markdown, search_document, RagChunk,
+    page_to_html, page_to_markdown, run_benchmark, search_document, BenchmarkMetrics, RagChunk,
 };
 pub use document::Document;
 pub use error::{Result, RupdfError};
@@ -137,5 +137,13 @@ startxref\n999999\n%%EOF";
 
         let content = doc.page_content_bytes(0).unwrap();
         assert!(content.starts_with(b"BT /F1 12 Tf"));
+    }
+
+    #[test]
+    fn test_end_to_end_core_pipeline_and_benchmark() {
+        let metrics = run_benchmark(5).expect("benchmark should succeed");
+        assert_eq!(metrics.pages, 5);
+        assert!(metrics.pages_per_sec_extract > 0.0);
+        assert!(metrics.pages_per_sec_render > 0.0);
     }
 }

@@ -10,6 +10,7 @@ from rupdf._rupdf import (
     __version__,
     batch_extract,
     batch_render,
+    benchmark,
     merge_pdfs as merge,
     open_document as open,
     version,
@@ -19,6 +20,7 @@ from rupdf.compat import fitz
 __all__ = [
     "__version__",
     "version",
+    "benchmark",
     "open",
     "merge",
     "batch_extract",
