@@ -138,7 +138,7 @@ impl PyPage {
         self.with_doc(|_, page| Ok(page.rotation))
     }
 
-    #[setter]
+    #[setter(rotation)]
     pub fn set_rotation_prop(&self, deg: i64) -> PyResult<()> {
         self.set_rotation(deg)
     }
@@ -236,6 +236,44 @@ impl PyPage {
     /// PyMuPDF alias for `search(needle)`.
     pub fn search_for(&self, py: Python<'_>, needle: &str) -> PyResult<Vec<PyRect>> {
         self.search(py, needle)
+    }
+
+    /// Inserts text at `point` (top-down coordinates) onto the page.
+    #[pyo3(signature = (point, text, fontsize=12.0, color=(0.0, 0.0, 0.0)))]
+    pub fn insert_text(
+        &self,
+        point: &crate::rect::PyPoint,
+        text: &str,
+        fontsize: f64,
+        color: (f64, f64, f64),
+    ) -> PyResult<()> {
+        self.with_doc_mut(|doc| {
+            doc.insert_text(
+                self.page_index,
+                point.inner,
+                text,
+                fontsize,
+                [color.0, color.1, color.2],
+            )
+            .map_err(to_py_err)
+        })
+    }
+
+    /// Draws a rectangle onto the page.
+    #[pyo3(signature = (rect, color=Some((0.0, 0.0, 0.0)), fill=None, width=1.0))]
+    pub fn draw_rect(
+        &self,
+        rect: &PyRect,
+        color: Option<(f64, f64, f64)>,
+        fill: Option<(f64, f64, f64)>,
+        width: f64,
+    ) -> PyResult<()> {
+        let stroke = color.map(|(r, g, b)| [r, g, b]);
+        let fill_rgb = fill.map(|(r, g, b)| [r, g, b]);
+        self.with_doc_mut(|doc| {
+            doc.draw_rect(self.page_index, rect.inner, stroke, fill_rgb, width)
+                .map_err(to_py_err)
+        })
     }
 
     fn __repr__(&self) -> String {

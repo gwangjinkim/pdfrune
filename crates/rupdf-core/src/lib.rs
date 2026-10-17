@@ -1,6 +1,7 @@
 pub mod document;
 pub mod error;
 pub mod geometry;
+pub mod mutate;
 pub mod page;
 pub mod parser;
 pub mod text;
@@ -8,6 +9,7 @@ pub mod text;
 pub use document::Document;
 pub use error::{Result, RupdfError};
 pub use geometry::{Matrix, Point, Rect};
+pub use mutate::{merge_documents, save_document, serialize_document};
 pub use page::Page;
 pub use text::{PageLayout, TextBlock, TextLine, TextWord};
 

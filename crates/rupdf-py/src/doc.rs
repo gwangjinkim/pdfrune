@@ -152,6 +152,107 @@ impl PyDocument {
         })
     }
 
+    /// Creates and inserts a new blank page with `(width, height)`.
+    #[pyo3(signature = (pno=-1, width=612.0, height=792.0))]
+    pub fn new_page(&self, pno: isize, width: f64, height: f64) -> PyResult<PyPage> {
+        let idx = self.with_doc_mut(|doc| {
+            let insert_at = if pno < 0 { None } else { Some(pno as usize) };
+            doc.new_page(insert_at, width, height).map_err(to_py_err)
+        })?;
+        Ok(PyPage {
+            state: Arc::clone(&self.state),
+            page_index: idx,
+        })
+    }
+
+    /// Deletes a page at 0-based index `pno` (supports negative indexing).
+    pub fn delete_page(&self, pno: isize) -> PyResult<()> {
+        self.with_doc_mut(|doc| {
+            let count = doc.page_count() as isize;
+            let resolved = if pno < 0 { count + pno } else { pno };
+            if resolved < 0 || resolved >= count {
+                return Err(PyIndexError::new_err(format!(
+                    "Page index {pno} out of range (page count: {count})"
+                )));
+            }
+            doc.delete_page(resolved as usize).map_err(to_py_err)
+        })
+    }
+
+    /// Reorders or filters the document's pages in-place to match `page_indices`.
+    pub fn select(&self, page_indices: Vec<usize>) -> PyResult<()> {
+        self.with_doc_mut(|doc| doc.select_pages(&page_indices).map_err(to_py_err))
+    }
+
+    /// Extracts a subset of pages into a new standalone `Document`.
+    pub fn extract_pages(&self, page_indices: Vec<usize>) -> PyResult<PyDocument> {
+        let extracted = self.with_doc(|doc| doc.extract_pages(&page_indices).map_err(to_py_err))?;
+        Ok(PyDocument::from_core(extracted))
+    }
+
+    /// Inserts pages from `other` into this document.
+    #[pyo3(signature = (other, from_page=0, to_page=-1, start_at=-1))]
+    pub fn insert_pdf(
+        &self,
+        other: &PyDocument,
+        from_page: isize,
+        to_page: isize,
+        start_at: isize,
+    ) -> PyResult<()> {
+        let other_doc = other.with_doc(|d| Ok(d.clone()))?;
+        self.with_doc_mut(|doc| {
+            let other_count = other_doc.page_count() as isize;
+            if other_count == 0 {
+                return Ok(());
+            }
+            let fp = if from_page < 0 {
+                (other_count + from_page).max(0) as usize
+            } else {
+                from_page as usize
+            };
+            let tp = if to_page < 0 {
+                (other_count + to_page).max(0) as usize
+            } else {
+                to_page as usize
+            };
+            let sa = if start_at < 0 {
+                None
+            } else {
+                Some(start_at as usize)
+            };
+            doc.insert_pdf(&other_doc, Some(fp), Some(tp), sa)
+                .map_err(to_py_err)
+        })
+    }
+
+    /// Serializes the document to PDF bytes.
+    #[pyo3(signature = (*, deflate=false))]
+    pub fn to_bytes<'py>(
+        &self,
+        py: Python<'py>,
+        deflate: bool,
+    ) -> PyResult<Bound<'py, pyo3::types::PyBytes>> {
+        let bytes =
+            py.allow_threads(|| self.with_doc(|doc| doc.to_bytes(deflate).map_err(to_py_err)))?;
+        Ok(pyo3::types::PyBytes::new(py, &bytes))
+    }
+
+    /// Alias for `to_bytes` matching `fitz.Document.write()`.
+    #[pyo3(signature = (*, deflate=false))]
+    pub fn write<'py>(
+        &self,
+        py: Python<'py>,
+        deflate: bool,
+    ) -> PyResult<Bound<'py, pyo3::types::PyBytes>> {
+        self.to_bytes(py, deflate)
+    }
+
+    /// Saves the document to disk at `filename`.
+    #[pyo3(signature = (filename, *, deflate=false))]
+    pub fn save(&self, py: Python<'_>, filename: PathBuf, deflate: bool) -> PyResult<()> {
+        py.allow_threads(|| self.with_doc(|doc| doc.save(&filename, deflate).map_err(to_py_err)))
+    }
+
     /// Closes the document and releases underlying memory.
     pub fn close(&self) -> PyResult<()> {
         let mut guard = self
@@ -213,6 +314,26 @@ impl PyDocument {
             Err(_) => "Document(closed)".to_string(),
         }
     }
+}
+
+/// Merges a sequence of `Document` objects or file paths into a single new `Document`.
+#[pyfunction]
+pub fn merge_pdfs(py: Python<'_>, documents: &Bound<'_, PyAny>) -> PyResult<PyDocument> {
+    let mut out = Document::new();
+    for item in documents.try_iter()? {
+        let item = item?;
+        if let Ok(py_doc) = item.extract::<PyDocument>() {
+            let cloned = py_doc.with_doc(|d| Ok(d.clone()))?;
+            out.insert_pdf(&cloned, None, None, None)
+                .map_err(to_py_err)?;
+        } else {
+            let opened = open_document(py, Some(&item), None)?;
+            let cloned = opened.with_doc(|d| Ok(d.clone()))?;
+            out.insert_pdf(&cloned, None, None, None)
+                .map_err(to_py_err)?;
+        }
+    }
+    Ok(PyDocument::from_core(out))
 }
 
 /// Opens a PDF document from a file path, raw bytes, a file-like object, or creates an empty document.
