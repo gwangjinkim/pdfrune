@@ -665,6 +665,36 @@ impl Document {
     ) -> Result<()> {
         crate::nav::delete_page_link(self, page_index, xref, from)
     }
+
+    /// Lists all `/Image` XObjects referenced on `page_index`.
+    pub fn get_page_images(&self, page_index: usize) -> Result<Vec<crate::render::PageImageInfo>> {
+        crate::render::get_page_images(self, page_index)
+    }
+
+    /// Extracts an `/Image` XObject by its indirect object number (`xref`).
+    pub fn extract_image(&self, xref: u32) -> Result<crate::render::ExtractedImage> {
+        crate::render::extract_image(self, xref)
+    }
+
+    /// Inserts a PNG image byte slice onto `page_index` at `rect`.
+    pub fn insert_image_bytes(
+        &mut self,
+        page_index: usize,
+        rect: Rect,
+        image_bytes: &[u8],
+    ) -> Result<u32> {
+        crate::render::insert_image_bytes(self, page_index, rect, image_bytes)
+    }
+
+    /// Inserts a `Pixmap` onto `page_index` at `rect`.
+    pub fn insert_image_pixmap(
+        &mut self,
+        page_index: usize,
+        rect: Rect,
+        pixmap: &crate::render::Pixmap,
+    ) -> Result<u32> {
+        crate::render::insert_image_pixmap(self, page_index, rect, pixmap)
+    }
 }
 
 impl Default for Document {

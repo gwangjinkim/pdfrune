@@ -348,6 +348,24 @@ impl PyDocument {
         self.with_doc_mut(|doc| doc.set_toc(&entries).map_err(to_py_err))
     }
 
+    /// Extracts an embedded `/Image` XObject by its `xref` object number.
+    pub fn extract_image<'py>(
+        &self,
+        py: Python<'py>,
+        xref: u32,
+    ) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+        let img =
+            py.allow_threads(|| self.with_doc(|doc| doc.extract_image(xref).map_err(to_py_err)))?;
+        let d = pyo3::types::PyDict::new(py);
+        d.set_item("ext", img.ext)?;
+        d.set_item("image", pyo3::types::PyBytes::new(py, &img.image))?;
+        d.set_item("width", img.width)?;
+        d.set_item("height", img.height)?;
+        d.set_item("colorspace", img.colorspace)?;
+        d.set_item("bpc", img.bpc)?;
+        Ok(d)
+    }
+
     /// Closes the document and releases underlying memory.
     pub fn close(&self) -> PyResult<()> {
         let mut guard = self
