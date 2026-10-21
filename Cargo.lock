@@ -474,6 +474,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdfrune"
+version = "0.1.0"
+dependencies = [
+ "ab_glyph",
+ "aho-corasick",
+ "flate2",
+ "lopdf",
+ "memchr",
+ "png",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tiny-skia",
+]
+
+[[package]]
+name = "pdfrune-ffi"
+version = "0.1.0"
+dependencies = [
+ "pdfrune",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "pdfrune-py"
+version = "0.1.0"
+dependencies = [
+ "pdfrune",
+ "pyo3",
+ "rayon",
+ "serde_json",
+]
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -639,43 +676,6 @@ name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
-
-[[package]]
-name = "rupdf-core"
-version = "0.1.0"
-dependencies = [
- "ab_glyph",
- "aho-corasick",
- "flate2",
- "lopdf",
- "memchr",
- "png",
- "rayon",
- "regex",
- "serde",
- "serde_json",
- "thiserror",
- "tiny-skia",
-]
-
-[[package]]
-name = "rupdf-ffi"
-version = "0.1.0"
-dependencies = [
- "rupdf-core",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "rupdf-py"
-version = "0.1.0"
-dependencies = [
- "pyo3",
- "rayon",
- "rupdf-core",
- "serde_json",
-]
 
 [[package]]
 name = "rustversion"

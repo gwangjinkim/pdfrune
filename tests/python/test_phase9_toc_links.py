@@ -1,9 +1,9 @@
-import rupdf
-from rupdf import Point, Rect
+import pdfrune
+from pdfrune import Point, Rect
 
 
 def test_toc_roundtrip():
-    doc = rupdf.open()
+    doc = pdfrune.open()
     p1 = doc.new_page()
     p1.insert_text(Point(72.0, 72.0), "Chapter 1: Introduction", fontsize=20.0)
     p2 = doc.new_page()
@@ -27,12 +27,12 @@ def test_toc_roundtrip():
 
     # Serialize and reopen to verify ISO 32000 /Outlines tree persistence
     raw = doc.to_bytes()
-    with rupdf.open(raw) as reopened:
+    with pdfrune.open(raw) as reopened:
         assert reopened.get_toc() == toc
 
 
 def test_page_hyperlinks_uri_and_goto_roundtrip():
-    doc = rupdf.open()
+    doc = pdfrune.open()
     p0 = doc.new_page(width=612.0, height=792.0)
     p1 = doc.new_page(width=612.0, height=792.0)
     p0.insert_text(Point(72.0, 100.0), "Click here to visit Rust", fontsize=14.0)
@@ -67,7 +67,7 @@ def test_page_hyperlinks_uri_and_goto_roundtrip():
 
     # Roundtrip serialize & reopen
     raw = doc.to_bytes()
-    with rupdf.open(raw) as reopened:
+    with pdfrune.open(raw) as reopened:
         r_links = reopened[0].get_links()
         assert len(r_links) == 2
         assert r_links[0]["uri"] == "https://www.rust-lang.org"

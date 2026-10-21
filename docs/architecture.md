@@ -1,14 +1,14 @@
 # Engine Architecture & Clean-Room Design
 
-`rupdf` is architected as a two-crate Cargo workspace:
-- **`crates/rupdf-core`**: Pure Rust PDF engine implementing ISO 32000-1 / ISO 32000-2 parsing, layout, rendering, mutation, and cryptography.
-- **`crates/rupdf-py`**: Thin PyO3 bindings exposing `rupdf-core` to Python with GIL-released concurrency and zero-copy buffer sharing.
+`pdfrune` is architected as a two-crate Cargo workspace:
+- **`crates/pdfrune`**: Pure Rust PDF engine implementing ISO 32000-1 / ISO 32000-2 parsing, layout, rendering, mutation, and cryptography.
+- **`crates/pdfrune-py`**: Thin PyO3 bindings exposing `pdfrune` to Python with GIL-released concurrency and zero-copy buffer sharing.
 
 ---
 
 ## 1. Clean-Room & Permissive Dependency Stack
 
-Every dependency in `rupdf` is strictly vetted for permissive licensing (`MIT`, `Apache-2.0`, or `BSD`) and high performance:
+Every dependency in `pdfrune` is strictly vetted for permissive licensing (`MIT`, `Apache-2.0`, or `BSD`) and high performance:
 - **`memchr` & `aho-corasick`**: SIMD-accelerated byte and multi-pattern scanning for fast PDF tokenizing, `xref` repair, and full-document text search.
 - **`flate2` (`miniz_oxide`)**: Fast pure-Rust `/FlateDecode` zlib/deflate compression and decompression.
 - **`tiny-skia`**: Memory-safe 2D RGBA rasterizer for vector paths, strokes, fills, and clipping.
@@ -21,17 +21,17 @@ Every dependency in `rupdf` is strictly vetted for permissive licensing (`MIT`, 
 
 ## 2. Subsystem Overview
 
-### Parser & Automatic XREF Repair (`crates/rupdf-core/src/parser/`)
+### Parser & Automatic XREF Repair (`crates/pdfrune/src/parser/`)
 - **`lexer.rs`**: Zero-allocation byte slice tokenizer for PDF primitives (`Boolean`, `Integer`, `Real`, literal/hex `String`, `Name`, `Array`, `Dict`, `Stream`) and content stream operators.
 - **`xref.rs`**: Parses both traditional ASCII cross-reference tables and PDF 1.5+ compressed `/Type /XRef` streams (including PNG predictor filters). If a PDF has a corrupted or truncated `startxref` offset, `scan_repair_xref` performs a full SIMD scan for `obj` headers and reconstructs the object graph automatically.
 - **`filter.rs`**: Decodes `/FlateDecode` (with fallback raw-deflate recovery), `/ASCIIHexDecode`, `/ASCII85Decode`, `/RunLengthDecode`, and PNG Up/Sub/Average/Paeth predictors.
 
-### Text & Layout Engine (`crates/rupdf-core/src/text/`)
+### Text & Layout Engine (`crates/pdfrune/src/text/`)
 - **`cmap.rs`**: Parses embedded `/ToUnicode` CMap streams (`beginbfchar`, `beginbfrange`), `/Differences` encoding arrays, Adobe Glyph List names, and WinAnsi/MacRoman encodings.
 - **`extractor.rs`**: Interprets PDF graphics state (`q`, `Q`, `cm`) and text state (`BT`, `ET`, `Tf`, `Tm`, `Td`, `TD`, `T*`, `TL`, `Tc`, `Tw`, `Tz`, `Tj`, `TJ`, `'`, `"`) to compute exact top-down page coordinates for every glyph and span.
 - **`layout.rs`**: Clusters spans into words, visual lines, and reading-order paragraphs/blocks.
 
-### Rendering & Embedded Fonts/Images (`crates/rupdf-core/src/render/`)
+### Rendering & Embedded Fonts/Images (`crates/pdfrune/src/render/`)
 - **`engine.rs`**: Executes page content streams onto a `tiny-skia` `Pixmap` or vector `SVG` canvas. When a font dictionary references an embedded `/FontFile2` TrueType stream, `ab_glyph` outlines and rasterizes the exact glyph shapes; otherwise a clean vector fallback stroke font ensures readable text on every platform.
 - **`image.rs`**: Inventories, extracts, inserts, and composites `/Subtype /Image` XObjects (`DeviceRGB`, `DeviceGray`, `DeviceCMYK`, `/DCTDecode` JPEG, and `/SMask` soft-mask alpha channels).
 

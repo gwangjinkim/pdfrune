@@ -7,7 +7,7 @@
 pdf_delete_link(doc, page = 1L, xref = NULL, rect = NULL)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 
@@ -16,7 +16,7 @@ pdf_delete_link(doc, page = 1L, xref = NULL, rect = NULL)
 \item{rect}{Optional numeric vector `c(x0, y0, x1, y1)`.}
 }
 \value{
-The modified `rupdf_document` (invisibly).
+The modified `pdfrune_document` (invisibly).
 }
 \description{
 Delete a Hyperlink from a PDF Page

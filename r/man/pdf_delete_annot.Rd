@@ -7,14 +7,14 @@
 pdf_delete_annot(doc, page = 1L, xref)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 
 \item{xref}{Indirect object number of the annotation to delete.}
 }
 \value{
-The modified `rupdf_document` (invisibly).
+The modified `pdfrune_document` (invisibly).
 }
 \description{
 Delete an Annotation from a PDF Page

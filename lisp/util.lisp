@@ -1,8 +1,8 @@
-;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: RUPDF; Base: 10 -*-
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: PDFRUNE; Base: 10 -*-
 ;;;
 ;;; Copyright (c) 2026, Gwang-Jin Kim. All rights reserved.
 
-(in-package :rupdf)
+(in-package :cl-pdfrune)
 
 (defun foreign-string-to-lisp-and-free (ptr)
   "Converts a foreign C string PTR to a Lisp string and frees PTR.
@@ -51,7 +51,7 @@ Caller is responsible for freeing with CFFI:FOREIGN-FREE."
   "Converts RECT into a list of 4 float numbers (X0 Y0 X1 Y1)."
   (let ((list (coerce rect 'list)))
     (unless (= (length list) 4)
-      (error 'rupdf-error :message (format nil "Invalid rect: ~S (expected 4 numbers)" rect)))
+      (error 'pdfrune-error :message (format nil "Invalid rect: ~S (expected 4 numbers)" rect)))
     (mapcar (lambda (x) (coerce x 'double-float)) list)))
 
 (defun normalize-color (color &optional (default '(0.0d0 0.0d0 0.0d0)))
@@ -60,5 +60,5 @@ Caller is responsible for freeing with CFFI:FOREIGN-FREE."
       default
       (let ((list (coerce color 'list)))
         (unless (= (length list) 3)
-          (error 'rupdf-error :message (format nil "Invalid color: ~S (expected 3 numbers [R G B])" color)))
+          (error 'pdfrune-error :message (format nil "Invalid color: ~S (expected 3 numbers [R G B])" color)))
         (mapcar (lambda (x) (coerce x 'double-float)) list))))

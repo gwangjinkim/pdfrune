@@ -1,4 +1,4 @@
 library(testthat)
-library(rupdf)
+library(pdfrune)
 
-test_check("rupdf")
+test_check("pdfrune")

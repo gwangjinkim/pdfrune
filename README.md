@@ -1,21 +1,21 @@
-# rupdf
+# pdfrune
 
 **Ultra-Fast, Memory-Safe, Permissive PDF Engine in Rust, Python, R & Common Lisp**
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
-[![Rust](https://img.shields.io/badge/Rust-2021%20Edition-orange.svg)](crates/rupdf-core)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](python/rupdf)
-[![CRAN](https://img.shields.io/badge/CRAN-rupdf-276DC3.svg)](r/)
-[![Quicklisp](https://img.shields.io/badge/Quicklisp-rupdf-darkgreen.svg)](lisp/)
-[![Ultralisp](https://img.shields.io/badge/Ultralisp-rupdf-blueviolet.svg)](lisp/)
+[![Rust](https://img.shields.io/badge/Rust-2021%20Edition-orange.svg)](crates/pdfrune)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](python/pdfrune)
+[![CRAN](https://img.shields.io/badge/CRAN-pdfrune-276DC3.svg)](r/)
+[![Quicklisp](https://img.shields.io/badge/Quicklisp-cl-pdfrune-darkgreen.svg)](lisp/)
+[![Ultralisp](https://img.shields.io/badge/Ultralisp-cl-pdfrune-blueviolet.svg)](lisp/)
 
-`rupdf` is a clean-room, high-performance PDF engine written in 100% memory-safe Rust ([`rupdf-core`](crates/rupdf-core)) with zero-overhead Python bindings ([`rupdf`](python/rupdf)), CRAN-compliant R bindings ([`r/`](r/)), and ANSI-standard Common Lisp bindings ([`lisp/`](lisp/)) designed in the classic style of Edi Weitz. It provides full functional parity with PyMuPDF (`fitz`) workflows—plus native multi-core parallelism, structured Markdown/HTML export, table detection, SIMD-accelerated search, and AI/RAG semantic chunking—under a **100% permissive `MIT OR Apache-2.0` dual license** with zero AGPL restrictions.
+`pdfrune` is a clean-room, high-performance PDF engine written in 100% memory-safe Rust ([`pdfrune`](crates/pdfrune)) with zero-overhead Python bindings ([`pdfrune`](python/pdfrune)), CRAN-compliant R bindings ([`r/`](r/)), and ANSI-standard Common Lisp bindings ([`lisp/`](lisp/)) designed in the classic style of Edi Weitz. It provides full functional parity with PyMuPDF (`fitz`) workflows—plus native multi-core parallelism, structured Markdown/HTML export, table detection, SIMD-accelerated search, and AI/RAG semantic chunking—under a **100% permissive `MIT OR Apache-2.0` dual license** with zero AGPL restrictions.
 
 ---
 
 ## Table of Contents
 
-- [Why `rupdf`?](#why-rupdf)
+- [Why `pdfrune`?](#why-pdfrune)
 - [Feature Comparison Matrix](#feature-comparison-matrix)
 - [Installation & Building](#installation--building)
 - [Python Quickstart & Examples](#python-quickstart--examples)
@@ -30,33 +30,33 @@
   - [9. Drop-In PyMuPDF (`fitz`) Compatibility](#9-drop-in-pymupdf-fitz-compatibility)
 - [R Package Quickstart & CRAN (`uvr`)](#r-package-quickstart--cran-uvr)
 - [Common Lisp Package Quickstart (Quicklisp & Ultralisp)](#common-lisp-package-quickstart-quicklisp--ultralisp)
-- [Using `rupdf-core` Directly in Rust](#using-rupdf-core-directly-in-rust)
+- [Using `pdfrune` Directly in Rust](#using-pdfrune-directly-in-rust)
 - [Documentation](#documentation)
 - [Development & Testing](#development--testing)
 - [Author & License](#author--license)
 
 ---
 
-## Why `rupdf`?
+## Why `pdfrune`?
 
 1. **100% Permissive Licensing (`MIT OR Apache-2.0`)**:
-   Unlike MuPDF and PyMuPDF (which are governed by the copyleft AGPL-3.0 license or require commercial licensing), `rupdf` is built from the ground up against the open **ISO 32000-1 / 32000-2** PDF specifications using only permissively licensed Rust crates. It is completely free for commercial, enterprise, academic, and private software.
+   Unlike MuPDF and PyMuPDF (which are governed by the copyleft AGPL-3.0 license or require commercial licensing), `pdfrune` is built from the ground up against the open **ISO 32000-1 / 32000-2** PDF specifications using only permissively licensed Rust crates. It is completely free for commercial, enterprise, academic, and private software.
 2. **Memory Safety & Corrupt-PDF Resilience**:
    Written in safe Rust with zero C/C++ dependencies—eliminating buffer overflows, use-after-free vulnerabilities, and segfaults on malformed inputs. Includes SIMD-accelerated automatic cross-reference (`xref`) table repair when opening truncated or damaged PDFs.
 3. **Fearless Multi-Core Parallelism (GIL-Free)**:
    All CPU-intensive operations (parsing, rendering, text layout, regex/SIMD search, Markdown generation, and batch processing) release the Python GIL and scale across all CPU cores via `rayon`.
 4. **First-Class Rust & Python APIs**:
-   Every capability is implemented in the pure Rust crate `rupdf-core` and exposed to Python via PyO3 with zero-copy buffer protocol support (`memoryview`, NumPy, Pillow) and complete static type stubs ([`__init__.pyi`](python/rupdf/__init__.pyi)).
+   Every capability is implemented in the pure Rust crate `pdfrune` and exposed to Python via PyO3 with zero-copy buffer protocol support (`memoryview`, NumPy, Pillow) and complete static type stubs ([`__init__.pyi`](python/pdfrune/__init__.pyi)).
 
 ---
 
 ## Feature Comparison Matrix
 
-| Capability | PyMuPDF (`fitz`) | `rupdf` (Python & Rust) |
+| Capability | PyMuPDF (`fitz`) | `pdfrune` (Python & Rust) |
 | :--- | :--- | :--- |
 | **License** | AGPL-3.0 / Commercial | **MIT OR Apache-2.0** (100% Free) |
 | **Memory Safety** | C / C++ | **100% Safe Rust** |
-| **Open Path / Bytes / Stream** | `fitz.open(...)` | `rupdf.open(...)` |
+| **Open Path / Bytes / Stream** | `fitz.open(...)` | `pdfrune.open(...)` |
 | **Metadata Read / Write** | `doc.metadata`, `doc.set_metadata()` | `doc.metadata`, `doc.set_metadata()` |
 | **Page Geometry & Rotation** | `mediabox`, `cropbox`, `rotation` | `mediabox`, `cropbox`, `bleedbox`, `trimbox`, `artbox`, `rotation` |
 | **Text / Words / Blocks / JSON** | `page.get_text("text" \| "words" \| "blocks" \| "json")` | `extract_text()`, `extract_words()`, `extract_blocks()`, `get_text(...)` |
@@ -69,12 +69,12 @@
 | **Annotations** | `page.annots()`, `add_*_annot()` | `page.annots()`, `add_highlight_annot()`, `add_text_annot()`, `add_rect_annot()`, `delete_annot()` |
 | **True Content Redactions** | `add_redact_annot()`, `apply_redactions()` | `add_redact_annot()`, `apply_redactions()` (permanently scrubs underlying stream text) |
 | **Interactive Forms (`AcroForm`)** | `page.widgets()`, `add_widget()` | `page.widgets()`, `page.add_widget()`, `page.set_field_value()` |
-| **Merge, Split & Page Ops** | `insert_pdf()`, `select()`, `delete_page()` | `rupdf.merge()`, `insert_pdf()`, `extract_pages()`, `select()`, `delete_page()` |
+| **Merge, Split & Page Ops** | `insert_pdf()`, `select()`, `delete_page()` | `pdfrune.merge()`, `insert_pdf()`, `extract_pages()`, `select()`, `delete_page()` |
 | **Standard PDF Encryption** | `authenticate()`, `save(encryption=...)` | `doc.authenticate(pw)`, `doc.save(..., encryption="rc4-128", user_pw=..., owner_pw=...)` |
 | **Direct Markdown & HTML** | External addon (`pymupdf4llm`) | **Built-in in Rust**: `page.to_markdown()`, `doc.to_markdown()`, `doc.to_html()` |
 | **AI / RAG Semantic Chunker** | External | **Built-in in Rust**: `doc.to_rag_chunks(max_chars=500)` with bbox & heading grounding |
 | **SIMD / Regex Document Search** | Single-threaded per page | **Parallel SIMD (`aho-corasick` + `regex`)**: `doc.search_all(query, regex=True)` |
-| **GIL-Free Batch Processing** | Manual multiprocessing | **Built-in Rust Worker Pool**: `rupdf.batch_extract()`, `rupdf.batch_render()` |
+| **GIL-Free Batch Processing** | Manual multiprocessing | **Built-in Rust Worker Pool**: `pdfrune.batch_extract()`, `pdfrune.batch_render()` |
 
 ---
 
@@ -94,34 +94,38 @@ uv run pytest
 
 ### Use as a Rust Crate
 
-Add `rupdf-core` to your `Cargo.toml`:
+Add `pdfrune` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rupdf-core = { path = "crates/rupdf-core" }
+pdfrune = { path = "crates/pdfrune" }
 ```
 
 ---
 
 ## Python Quickstart & Examples
 
+```bash
+pip install pdfrune
+```
+
 ### 1. Opening, Creating & Inspecting PDFs
 
 ```python
-import rupdf
-from rupdf import Point, Rect
+import pdfrune
+from pdfrune import Point, Rect
 
 # Create a new PDF document in memory
-with rupdf.open() as doc:
+with pdfrune.open() as doc:
     page = doc.new_page(width=612.0, height=792.0)
-    page.insert_text(Point(72.0, 72.0), "Hello from rupdf!", fontsize=24.0, color=(0.1, 0.2, 0.6))
+    page.insert_text(Point(72.0, 72.0), "Hello from pdfrune!", fontsize=24.0, color=(0.1, 0.2, 0.6))
     page.draw_rect(Rect(72.0, 90.0, 320.0, 140.0), color=(0.1, 0.2, 0.6), fill=(0.9, 0.95, 1.0), width=1.5)
 
-    doc.set_metadata({"title": "Sample Report", "author": "rupdf Engine"})
+    doc.set_metadata({"title": "Sample Report", "author": "pdfrune Engine"})
     doc.save("report.pdf", deflate=True)
 
 # Open from file path, bytes, or file-like BytesIO stream
-with rupdf.open("report.pdf") as doc:
+with pdfrune.open("report.pdf") as doc:
     print("Pages:", len(doc), "Metadata:", doc.metadata)
     page = doc[0]
     print("MediaBox:", page.mediabox, "Rotation:", page.rotation)
@@ -130,7 +134,7 @@ with rupdf.open("report.pdf") as doc:
 ### 2. Text, Word, Block & Table Extraction
 
 ```python
-with rupdf.open("report.pdf") as doc:
+with pdfrune.open("report.pdf") as doc:
     page = doc[0]
 
     # Plain text
@@ -161,7 +165,7 @@ with rupdf.open("report.pdf") as doc:
 ```python
 import numpy as np
 
-with rupdf.open("report.pdf") as doc:
+with pdfrune.open("report.pdf") as doc:
     page = doc[0]
 
     # Rasterize at 150 DPI
@@ -178,7 +182,7 @@ with rupdf.open("report.pdf") as doc:
 ### 4. Table of Contents (TOC) & Hyperlinks
 
 ```python
-with rupdf.open("report.pdf") as doc:
+with pdfrune.open("report.pdf") as doc:
     doc.new_page()
 
     # Hierarchical bookmarks: [level, title, 1-based page number]
@@ -197,7 +201,7 @@ with rupdf.open("report.pdf") as doc:
 ### 5. Image Inventory, Extraction & Insertion
 
 ```python
-with rupdf.open() as doc:
+with pdfrune.open() as doc:
     page = doc.new_page()
 
     # Insert PNG/JPEG bytes, file, or Pixmap onto a page rectangle
@@ -213,7 +217,7 @@ with rupdf.open() as doc:
 ### 6. Annotations, True Redactions & Interactive AcroForms
 
 ```python
-with rupdf.open() as doc:
+with pdfrune.open() as doc:
     page = doc.new_page()
     page.insert_text(Point(72, 100), "Public Summary", fontsize=14)
     page.insert_text(Point(72, 140), "SSN: 999-00-1234", fontsize=14)
@@ -242,7 +246,7 @@ with rupdf.open() as doc:
 
 ```python
 # Encrypt with ISO 32000 Standard Security Handler (128-bit RC4)
-with rupdf.open() as doc:
+with pdfrune.open() as doc:
     page = doc.new_page()
     page.insert_text(Point(72, 100), "Confidential Acquisition Plan", fontsize=16)
     encrypted_pdf = doc.to_bytes(
@@ -253,7 +257,7 @@ with rupdf.open() as doc:
     )
 
 # Open & authenticate encrypted PDF
-with rupdf.open(encrypted_pdf) as enc_doc:
+with pdfrune.open(encrypted_pdf) as enc_doc:
     assert enc_doc.is_encrypted and enc_doc.needs_pass
     assert enc_doc.authenticate("reader_secret") is True
     print(enc_doc[0].extract_text())
@@ -263,7 +267,7 @@ with rupdf.open(encrypted_pdf) as enc_doc:
 
 ```python
 # Export full document to structured Markdown or HTML (parallelized via rayon)
-with rupdf.open("report.pdf") as doc:
+with pdfrune.open("report.pdf") as doc:
     md_text = doc.to_markdown()
     html_text = doc.to_html()
 
@@ -274,8 +278,8 @@ with rupdf.open("report.pdf") as doc:
     matches = doc.search_all(r"Section \d+\.\d+", regex=True)
 
 # GIL-free multi-document batch extraction and multi-page rendering
-texts = rupdf.batch_extract(["report.pdf", "other.pdf"])
-pixmaps = rupdf.batch_render("report.pdf", dpi=150.0)
+texts = pdfrune.batch_extract(["report.pdf", "other.pdf"])
+pixmaps = pdfrune.batch_render("report.pdf", dpi=150.0)
 ```
 
 ### 9. Drop-In PyMuPDF (`fitz`) Compatibility
@@ -283,7 +287,7 @@ pixmaps = rupdf.batch_render("report.pdf", dpi=150.0)
 Existing PyMuPDF codebases can migrate with a single import change:
 
 ```python
-import rupdf.fitz as fitz
+import pdfrune.fitz as fitz
 
 with fitz.open("report.pdf") as doc:
     page = doc.load_page(0)
@@ -297,21 +301,21 @@ with fitz.open("report.pdf") as doc:
 
 ## R Package Quickstart & CRAN (`uvr`)
 
-The R package for `rupdf` provides full access to the high-performance Rust PDF engine with idiomatic `pdf_*` functions and complete `roxygen2` documentation:
+The R package for `pdfrune` provides full access to the high-performance Rust PDF engine with idiomatic `pdf_*` functions and complete `roxygen2` documentation:
 
 ### Installation via `uvr`
 
 Manage dependencies using [`uvr`](https://github.com/astral-sh/uvr):
 
 ```bash
-uvr add rupdf
+uvr add pdfrune
 uvr sync
 ```
 
 ### R Code Examples
 
 ```r
-library(rupdf)
+library(pdfrune)
 
 # 1. Open and extract plain text or layout words
 doc <- pdf_open("report.pdf")
@@ -344,18 +348,18 @@ pdf_save(doc, "redacted.pdf", encryption = "rc4-128", user_pw = "secret")
 
 ## Common Lisp Package Quickstart (Quicklisp & Ultralisp)
 
-The Common Lisp package (`:rupdf` / `:cl-rupdf`) follows the classic design and documentation style of **Edi Weitz** (`cl-ppcre`, `cl-fad`, `drakma`). It is 100% ANSI-standard Common Lisp and portable across all major implementations (SBCL, CCL, ECL, ABCL, CLISP, Allegro, LispWorks).
+The Common Lisp package (`:pdfrune` / `:cl-pdfrune`) follows the classic design and documentation style of **Edi Weitz** (`cl-ppcre`, `cl-fad`, `drakma`). It is 100% ANSI-standard Common Lisp and portable across all major implementations (SBCL, CCL, ECL, ABCL, CLISP, Allegro, LispWorks).
 
 ### Loading with Quicklisp / Ultralisp
 
 ```lisp
-(ql:quickload :rupdf)
+(ql:quickload :cl-pdfrune)
 ```
 
 ### Common Lisp Code Examples
 
 ```lisp
-(in-package :rupdf)
+(in-package :pdfrune)
 
 ;; 1. Open and extract plain text or layout words
 (with-open-pdf (doc #p"report.pdf")
@@ -402,14 +406,14 @@ The Common Lisp package (`:rupdf` / `:cl-rupdf`) follows the classic design and 
 
 ---
 
-## Using `rupdf-core` Directly in Rust
+## Using `pdfrune` Directly in Rust
 
-`rupdf-core` is a standalone, zero-Python Rust library suitable for CLI tools, backend microservices, WebAssembly targets, or native desktop apps:
+`pdfrune` is a standalone, zero-Python Rust library suitable for CLI tools, backend microservices, WebAssembly targets, or native desktop apps:
 
 ```rust
-use rupdf_core::{Document, Point, Rect};
+use pdfrune::{Document, Point, Rect};
 
-fn main() -> rupdf_core::Result<()> {
+fn main() -> pdfrune::Result<()> {
     // 1. Create and populate a PDF document
     let mut doc = Document::new();
     doc.new_page(None, 612.0, 792.0)?;
@@ -443,8 +447,8 @@ Detailed guides and API references are located in the [`docs/`](docs/) directory
 - [**Python API Reference**](docs/python-api.md) — Complete reference for `Document`, `Page`, `Pixmap`, `Table`, `Rect`, `Point`, `Matrix`, and module-level functions.
 - [**Common Lisp API Reference & Guide**](lisp/README.md) ([docs/lisp-api.md](docs/lisp-api.md)) — Complete reference for Common Lisp macros, functions, conditions, and types in Edi Weitz style.
 - [**R Package Reference**](docs/r-api.md) — Complete reference for R functions (`pdf_open`, `pdf_render`, `pdf_find_tables`, `pdf_extract_text`, etc.) and `uvr` usage.
-- [**Rust (`rupdf-core`) API Reference**](docs/rust-api.md) — Guide to using `rupdf-core` directly in Rust applications.
-- [**PyMuPDF (`fitz`) Migration Guide**](docs/migration-from-pymupdf.md) — Side-by-side cheat sheet for migrating from PyMuPDF to `rupdf`.
+- [**Rust (`pdfrune`) API Reference**](docs/rust-api.md) — Guide to using `pdfrune` directly in Rust applications.
+- [**PyMuPDF (`fitz`) Migration Guide**](docs/migration-from-pymupdf.md) — Side-by-side cheat sheet for migrating from PyMuPDF to `pdfrune`.
 - [**Engine Architecture & Security**](docs/architecture.md) — Deep dive into the ISO 32000 parser, XREF auto-repair, font CMap engine, `tiny-skia`/`ab_glyph` renderer, true redaction scrubber, and RC4-128 crypto handler.
 
 ---
@@ -467,8 +471,8 @@ cd r && uvr run run_tests.R
 
 # Run the full Common Lisp test suite
 sbcl --noinform --non-interactive \
-  --eval '(ql:quickload :rupdf-test)' \
-  --eval '(asdf:test-system :rupdf)'
+  --eval '(ql:quickload :cl-pdfrune-test)' \
+  --eval '(asdf:test-system :cl-pdfrune)'
 ```
 
 ---

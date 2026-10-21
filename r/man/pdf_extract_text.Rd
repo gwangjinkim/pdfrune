@@ -7,7 +7,7 @@
 pdf_extract_text(doc, page = NULL)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{Optional 1-based page index. If `NULL` (default), extracts and concatenates text across all pages.}
 }

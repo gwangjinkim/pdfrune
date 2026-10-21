@@ -1,6 +1,6 @@
-# Migrating from PyMuPDF (`fitz`) to `rupdf`
+# Migrating from PyMuPDF (`fitz`) to `pdfrune`
 
-`rupdf` is designed so existing Python codebases using PyMuPDF (`import fitz` or `import pymupdf`) can switch with minimal or zero changes while moving from an AGPL-3.0 dependency to a **100% permissive `MIT OR Apache-2.0`** Rust engine.
+`pdfrune` is designed so existing Python codebases using PyMuPDF (`import fitz` or `import pymupdf`) can switch with minimal or zero changes while moving from an AGPL-3.0 dependency to a **100% permissive `MIT OR Apache-2.0`** Rust engine.
 
 ---
 
@@ -9,19 +9,19 @@
 Replace `import fitz` with:
 
 ```python
-import rupdf.fitz as fitz
+import pdfrune.fitz as fitz
 ```
 
 All standard `fitz.open(...)`, `doc.load_page(i)`, `page.get_text(...)`, `page.search_for(...)`, `page.get_pixmap(...)`, `doc.get_toc()`, `page.get_links()`, `page.get_images()`, `page.annots()`, `page.widgets()`, and `page.find_tables()` calls work out of the box.
 
 ---
 
-## Option 2: Idiomatic `rupdf` API Cheat Sheet
+## Option 2: Idiomatic `pdfrune` API Cheat Sheet
 
-| Operation | PyMuPDF (`fitz`) | `rupdf` |
+| Operation | PyMuPDF (`fitz`) | `pdfrune` |
 | :--- | :--- | :--- |
-| **Open file / bytes** | `fitz.open("a.pdf")` / `fitz.open(stream=b, filetype="pdf")` | `rupdf.open("a.pdf")` / `rupdf.open(b)` |
-| **Create empty PDF** | `fitz.open()` | `rupdf.open()` |
+| **Open file / bytes** | `fitz.open("a.pdf")` / `fitz.open(stream=b, filetype="pdf")` | `pdfrune.open("a.pdf")` / `pdfrune.open(b)` |
+| **Create empty PDF** | `fitz.open()` | `pdfrune.open()` |
 | **Extract plain text** | `page.get_text("text")` | `page.extract_text()` (or `page.get_text("text")`) |
 | **Extract words** | `page.get_text("words")` | `page.extract_words()` (or `page.get_text("words")`) |
 | **Extract blocks** | `page.get_text("blocks")` | `page.extract_blocks()` (or `page.get_text("blocks")`) |

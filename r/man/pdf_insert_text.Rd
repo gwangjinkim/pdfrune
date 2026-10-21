@@ -7,7 +7,7 @@
 pdf_insert_text(doc, page = 1L, point, text, fontsize = 12, color = c(0, 0, 0))
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 
@@ -20,7 +20,7 @@ pdf_insert_text(doc, page = 1L, point, text, fontsize = 12, color = c(0, 0, 0))
 \item{color}{Numeric RGB vector `c(r, g, b)` between 0 and 1. Default is black `c(0, 0, 0)`.}
 }
 \value{
-The modified `rupdf_document` (invisibly).
+The modified `pdfrune_document` (invisibly).
 }
 \description{
 Draw Text onto a PDF Page

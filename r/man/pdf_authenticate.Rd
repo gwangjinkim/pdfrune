@@ -7,7 +7,7 @@
 pdf_authenticate(doc, password)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{password}{A character string containing the user or owner password.}
 }

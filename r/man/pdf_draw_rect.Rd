@@ -7,7 +7,7 @@
 pdf_draw_rect(doc, page = 1L, rect, color = c(0, 0, 0), fill = NULL, width = 1)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 
@@ -20,7 +20,7 @@ pdf_draw_rect(doc, page = 1L, rect, color = c(0, 0, 0), fill = NULL, width = 1)
 \item{width}{Stroke line width. Default is `1.0`.}
 }
 \value{
-The modified `rupdf_document` (invisibly).
+The modified `pdfrune_document` (invisibly).
 }
 \description{
 Draw a Rectangle onto a PDF Page

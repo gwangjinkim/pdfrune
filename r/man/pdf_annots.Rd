@@ -7,7 +7,7 @@
 pdf_annots(doc, page = 1L)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 }

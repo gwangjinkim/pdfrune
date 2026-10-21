@@ -1,15 +1,15 @@
-;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: RUPDF; Base: 10 -*-
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: PDFRUNE; Base: 10 -*-
 ;;;
 ;;; Copyright (c) 2026, Gwang-Jin Kim. All rights reserved.
 
-(in-package :rupdf)
+(in-package :cl-pdfrune)
 
 (defun check-page-bounds (doc page-number)
-  "Ensures PAGE-NUMBER is within [0, (page-count doc)). Signals RUPDF-PAGE-OUT-OF-BOUNDS-ERROR."
+  "Ensures PAGE-NUMBER is within [0, (page-count doc)). Signals PDFRUNE-PAGE-OUT-OF-BOUNDS-ERROR."
   (check-open-document doc)
   (let ((count (page-count doc)))
     (unless (and (integerp page-number) (<= 0 page-number) (< page-number count))
-      (error 'rupdf-page-out-of-bounds-error
+      (error 'pdfrune-page-out-of-bounds-error
              :page-index page-number
              :page-count count))))
 
@@ -30,7 +30,7 @@ WIDTH and HEIGHT specify the page dimensions in points (default: standard US Let
                           (coerce width 'double-float)
                           (coerce height 'double-float))))
     (unless (>= res 0)
-      (error 'rupdf-error :message "Failed to create new page in document."))
+      (error 'pdfrune-error :message "Failed to create new page in document."))
     res))
 
 (defun delete-page (doc page-number)
@@ -38,7 +38,7 @@ WIDTH and HEIGHT specify the page dimensions in points (default: standard US Let
   (check-page-bounds doc page-number)
   (let ((res (%c-delete-page (pdf-document-pointer doc) page-number)))
     (unless (= res 1)
-      (error 'rupdf-error :message (format nil "Failed to delete page ~D." page-number)))
+      (error 'pdfrune-error :message (format nil "Failed to delete page ~D." page-number)))
     t))
 
 (defun insert-text (doc page-number point text &key (font-size 11.0d0) color)
@@ -59,7 +59,7 @@ Optional COLOR is a list or vector of '(R G B)' normalized between 0.0 and 1.0."
                               (second rgb)
                               (third rgb))))
     (unless (= res 1)
-      (error 'rupdf-error :message "Failed to insert text on page."))
+      (error 'pdfrune-error :message "Failed to insert text on page."))
     t))
 
 (defun draw-rect (doc page-number rect &key stroke-color fill-color (width 1.0d0))
@@ -77,5 +77,5 @@ Optional COLOR is a list or vector of '(R G B)' normalized between 0.0 and 1.0."
                             (first f-rgb) (second f-rgb) (third f-rgb) has-fill
                             (coerce width 'double-float))))
     (unless (= res 1)
-      (error 'rupdf-error :message "Failed to draw rectangle on page."))
+      (error 'pdfrune-error :message "Failed to draw rectangle on page."))
     t))

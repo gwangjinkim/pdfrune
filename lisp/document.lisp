@@ -1,11 +1,11 @@
-;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: RUPDF; Base: 10 -*-
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: PDFRUNE; Base: 10 -*-
 ;;;
 ;;; Copyright (c) 2026, Gwang-Jin Kim. All rights reserved.
 
-(in-package :rupdf)
+(in-package :cl-pdfrune)
 
 (defstruct (pdf-document (:constructor %make-pdf-document (pointer &optional path)))
-  "Represents an open or in-memory PDF document managed by rupdf."
+  "Represents an open or in-memory PDF document managed by pdfrune."
   pointer
   path)
 
@@ -18,14 +18,14 @@
         (format stream ":CLOSED"))))
 
 (defun version ()
-  "Returns the version of the underlying rupdf engine as a string."
+  "Returns the version of the underlying pdfrune engine as a string."
   (ensure-library-loaded)
   (foreign-string-to-lisp-and-free (%c-version)))
 
 (defun check-open-document (doc)
-  "Ensures DOC is a valid, open PDF-DOCUMENT. Signals RUPDF-ERROR otherwise."
+  "Ensures DOC is a valid, open PDF-DOCUMENT. Signals PDFRUNE-ERROR otherwise."
   (unless (and (pdf-document-p doc) (pdf-document-pointer doc))
-    (error 'rupdf-error :message "The PDF document is closed or invalid.")))
+    (error 'pdfrune-error :message "The PDF document is closed or invalid.")))
 
 (defun open-pdf (path-or-bytes &key password)
   "Opens a PDF document from PATH-OR-BYTES.
@@ -40,7 +40,7 @@ Returns a PDF-DOCUMENT structure."
        (setf path-str (namestring (truename path-or-bytes)))
        (setf ptr (%c-open-path path-str))
        (when (or (null ptr) (cffi:null-pointer-p ptr))
-         (error 'rupdf-file-error
+         (error 'pdfrune-file-error
                 :pathname path-str
                 :message "Failed to open or parse PDF file.")))
       ((typep path-or-bytes '(vector (unsigned-byte 8)))
@@ -50,11 +50,11 @@ Returns a PDF-DOCUMENT structure."
              (setf (cffi:mem-aref foreign-buf :uint8 i) (aref path-or-bytes i)))
            (setf ptr (%c-open-bytes foreign-buf len))))
        (when (or (null ptr) (cffi:null-pointer-p ptr))
-         (error 'rupdf-file-error
+         (error 'pdfrune-file-error
                 :pathname "<byte-vector>"
                 :message "Failed to parse PDF from memory buffer.")))
       (t
-       (error 'rupdf-error
+       (error 'pdfrune-error
               :message (format nil "Invalid path-or-bytes: ~S" path-or-bytes))))
     (let ((doc (%make-pdf-document ptr path-str)))
       (when password
@@ -66,7 +66,7 @@ Returns a PDF-DOCUMENT structure."
   (ensure-library-loaded)
   (let ((ptr (%c-new)))
     (when (or (null ptr) (cffi:null-pointer-p ptr))
-      (error 'rupdf-error :message "Failed to allocate new PDF document."))
+      (error 'pdfrune-error :message "Failed to allocate new PDF document."))
     (%make-pdf-document ptr nil)))
 
 (defun close-pdf (doc)
@@ -108,7 +108,7 @@ and guarantees that the document is closed and its memory released upon exit."
                               (or creator "")
                               (or producer ""))))
     (unless (= res 1)
-      (error 'rupdf-error :message "Failed to set document metadata."))
+      (error 'pdfrune-error :message "Failed to set document metadata."))
     doc))
 
 (defun save-document (doc path &key (deflate t) encryption user-password owner-password)
@@ -124,7 +124,7 @@ Optional ENCRYPTION specifies the encryption algorithm (e.g. \"rc4-128\")."
                        (or user-password "")
                        (or owner-password ""))))
     (unless (= res 1)
-      (error 'rupdf-error :message (format nil "Failed to save PDF document to ~S" namestr)))
+      (error 'pdfrune-error :message (format nil "Failed to save PDF document to ~S" namestr)))
     doc))
 
 (defun document-to-bytes (doc &key (deflate t) encryption user-password owner-password)
@@ -140,7 +140,7 @@ Optional ENCRYPTION specifies the encryption algorithm (e.g. \"rc4-128\")."
                               (or owner-password "")
                               out-len)))
         (when (or (null ptr) (cffi:null-pointer-p ptr))
-          (error 'rupdf-error :message "Failed to serialize PDF document to bytes."))
+          (error 'pdfrune-error :message "Failed to serialize PDF document to bytes."))
         (let ((len (cffi:mem-ref out-len :size)))
           (foreign-bytes-to-lisp-and-free ptr len))))))
 
@@ -159,7 +159,7 @@ If TARGET-PATH is given, writes to disk; otherwise returns serialized bytes."
                           (let ((buf (make-array (file-length s) :element-type '(unsigned-byte 8))))
                             (read-sequence buf s)
                             buf)))
-                       (t (error 'rupdf-error :message (format nil "Cannot merge item ~S" item)))))
+                       (t (error 'pdfrune-error :message (format nil "Cannot merge item ~S" item)))))
                    files-or-bytes-list)))
     (cffi:with-foreign-object (ptrs-array :pointer count)
       (cffi:with-foreign-object (lens-array :size count)
@@ -176,7 +176,7 @@ If TARGET-PATH is given, writes to disk; otherwise returns serialized bytes."
                  (cffi:with-foreign-object (out-len :size)
                    (let ((res-ptr (%c-merge-pdfs ptrs-array lens-array count out-len)))
                      (when (or (null res-ptr) (cffi:null-pointer-p res-ptr))
-                       (error 'rupdf-error :message "Failed to merge PDF documents."))
+                       (error 'pdfrune-error :message "Failed to merge PDF documents."))
                      (let* ((len (cffi:mem-ref out-len :size))
                             (merged-bytes (foreign-bytes-to-lisp-and-free res-ptr len)))
                        (if target-path

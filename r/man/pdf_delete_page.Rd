@@ -7,12 +7,12 @@
 pdf_delete_page(doc, page)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index to delete.}
 }
 \value{
-The modified `rupdf_document` (invisibly).
+The modified `pdfrune_document` (invisibly).
 }
 \description{
 Delete a Page from a PDF Document

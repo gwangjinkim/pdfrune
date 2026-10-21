@@ -1,0 +1,21 @@
+[package]
+name = "pdfrune"
+version = "0.1.0"
+edition = "2021"
+authors = ["Gwang-Jin Kim <gwang.jin.kim.phd@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "Clean-room, high-performance, memory-safe PDF engine in pure Rust"
+
+[dependencies]
+thiserror = "2.0"
+flate2 = "1.1"
+memchr = "2.8"
+rayon = "1.12"
+regex = "1.11"
+aho-corasick = "1.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+lopdf = "0.34"
+tiny-skia = "0.11"
+ab_glyph = "0.2"
+png = "0.17"

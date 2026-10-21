@@ -7,7 +7,7 @@
 pdf_insert_image(doc, page = 1L, rect, filename = NULL, bytes = NULL)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 

@@ -12,7 +12,7 @@ pdf_open(path = NULL, bytes = NULL)
 \item{bytes}{Raw vector containing the in-memory PDF data. Optional if `path` is provided.}
 }
 \value{
-An object of class `rupdf_document`.
+An object of class `pdfrune_document`.
 }
 \description{
 Opens an existing PDF from a file path or raw vector, or creates a new empty PDF.

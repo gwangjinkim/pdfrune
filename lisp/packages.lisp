@@ -4,26 +4,25 @@
 
 (in-package :cl-user)
 
-(defpackage :rupdf
-  (:nicknames :cl-rupdf)
+(defpackage :cl-pdfrune  (:nicknames :pdfrune)
   (:use :cl)
   (:export
    ;; Specials & Library Management
-   #:*rupdf-library-path*
+   #:*pdfrune-library-path*
    #:*default-dpi*
    #:ensure-library-loaded
-   #:load-rupdf-library
+   #:load-pdfrune-library
    #:build-native-library
 
    ;; Conditions
-   #:rupdf-error
-   #:rupdf-error-message
-   #:rupdf-file-error
-   #:rupdf-error-pathname
-   #:rupdf-crypto-error
-   #:rupdf-page-out-of-bounds-error
-   #:rupdf-error-page-index
-   #:rupdf-error-page-count
+   #:pdfrune-error
+   #:pdfrune-error-message
+   #:pdfrune-file-error
+   #:pdfrune-error-pathname
+   #:pdfrune-crypto-error
+   #:pdfrune-page-out-of-bounds-error
+   #:pdfrune-error-page-index
+   #:pdfrune-error-page-count
 
    ;; Types & Structures
    #:pdf-document

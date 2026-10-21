@@ -6,7 +6,7 @@
 ^run_tests\.R$
 ^cran-comments\.md$
 ^src/rust/target$
-^src/rust/rupdf-core/target$
+^src/rust/pdfrune/target$
 ^src/.*\.o$
 ^src/.*\.so$
 ^src/.*\.dylib$

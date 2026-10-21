@@ -1,11 +1,11 @@
-## Resubmission of rupdf 0.1.0
+## Resubmission of pdfrune 0.1.0
 
 This is a resubmission addressing the feedback from the CRAN incoming pre-tests.
 
 ### Summary of Fixes:
 
 * **Foreign function calls (WARNING fixed)**:
-  - Fixed `pdf_insert_text()` in `R/annot.R` which previously passed 9 arguments to `C_rupdf_insert_text` instead of 7. The RGB color is now passed as a single length-3 numeric vector as registered in `src/init.c`.
+  - Fixed `pdf_insert_text()` in `R/annot.R` which previously passed 9 arguments to `C_pdfrune_insert_text` instead of 7. The RGB color is now passed as a single length-3 numeric vector as registered in `src/init.c`.
 
 * **Rust compilation (WARNING fixed)**:
   - All dependency Rust crates are now vendored offline inside `src/rust/vendor.tar.xz`.

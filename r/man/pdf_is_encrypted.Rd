@@ -7,7 +7,7 @@
 pdf_is_encrypted(doc)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 }
 \value{
 A logical value (`TRUE` if encrypted, `FALSE` otherwise).

@@ -7,7 +7,7 @@
 pdf_search(doc, needle, page = NULL, regex = FALSE)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{needle}{Character string to search for (substring or regex pattern).}
 

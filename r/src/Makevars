@@ -1,8 +1,8 @@
 TARGET_DIR = $(CURDIR)/rust/target
 LIBDIR = $(TARGET_DIR)/release
-STATLIB = $(LIBDIR)/librupdf_r.a
+STATLIB = $(LIBDIR)/libpdfrune_r.a
 PKG_CFLAGS = -pthread $(C_VISIBILITY)
-PKG_LIBS = -L$(LIBDIR) -lrupdf_r -lpthread -ldl -lm
+PKG_LIBS = -L$(LIBDIR) -lpdfrune_r -lpthread -ldl -lm
 
 all: $(SHLIB) cleanup
 

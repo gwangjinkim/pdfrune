@@ -1,9 +1,9 @@
-import rupdf
-from rupdf import Point, Rect
+import pdfrune
+from pdfrune import Point, Rect
 
 
 def test_annotations_add_list_delete():
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=612.0, height=792.0)
     assert page.annots() == []
 
@@ -27,14 +27,14 @@ def test_annotations_add_list_delete():
 
     # Roundtrip serialize & reopen
     raw = doc.to_bytes()
-    with rupdf.open(raw) as reopened:
+    with pdfrune.open(raw) as reopened:
         r_annots = reopened[0].annots()
         assert len(r_annots) == 2
         assert r_annots[0]["contents"] == "Review this paragraph"
 
 
 def test_true_pdf_redaction_scrubs_underlying_text():
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=612.0, height=792.0)
     page.insert_text(Point(72.0, 100.0), "Public Header Information", fontsize=16.0)
     page.insert_text(Point(72.0, 160.0), "SSN: 999-00-1234", fontsize=14.0)
@@ -67,13 +67,13 @@ def test_true_pdf_redaction_scrubs_underlying_text():
     # Verify even after saving and reopening, the redacted text does not exist in the PDF
     raw = doc.to_bytes()
     assert b"999-00-1234" not in raw
-    with rupdf.open(raw) as reopened:
+    with pdfrune.open(raw) as reopened:
         assert "999-00-1234" not in reopened[0].extract_text()
         assert reopened[0].search("999-00-1234") == []
 
 
 def test_interactive_acroform_widgets():
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=612.0, height=792.0)
     assert page.widgets() == []
 
@@ -107,7 +107,7 @@ def test_interactive_acroform_widgets():
 
     # Roundtrip serialize & reopen
     raw = doc.to_bytes()
-    with rupdf.open(raw) as reopened:
+    with pdfrune.open(raw) as reopened:
         rw = reopened[0].widgets()
         assert len(rw) == 2
         assert rw[0]["field_name"] == "applicant_name"

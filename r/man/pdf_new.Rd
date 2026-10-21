@@ -7,7 +7,7 @@
 pdf_new()
 }
 \value{
-An empty `rupdf_document`.
+An empty `pdfrune_document`.
 }
 \description{
 Create a New In-Memory PDF Document

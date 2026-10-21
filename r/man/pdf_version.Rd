@@ -2,7 +2,7 @@
 % Please edit documentation in R/zzz.R
 \name{pdf_version}
 \alias{pdf_version}
-\title{Return rupdf Core Engine Version}
+\title{Return pdfrune Core Engine Version}
 \usage{
 pdf_version()
 }
@@ -10,7 +10,7 @@ pdf_version()
 A character string representing the version of the underlying Rust engine.
 }
 \description{
-Return rupdf Core Engine Version
+Return pdfrune Core Engine Version
 }
 \examples{
 pdf_version()

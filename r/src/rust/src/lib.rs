@@ -5,7 +5,7 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::ptr;
 
-use rupdf_core::{Document, Point, Rect};
+use pdfrune::{Document, Point, Rect};
 
 // Helper to convert C string pointer to &str
 unsafe fn c_to_str<'a>(p: *const c_char) -> &'a str {
@@ -23,12 +23,12 @@ fn to_c_string(s: impl Into<String>) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_version() -> *mut c_char {
-    to_c_string(rupdf_core::version())
+pub extern "C" fn pdfrune_c_version() -> *mut c_char {
+    to_c_string(pdfrune::version())
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_free_string(s: *mut c_char) {
+pub extern "C" fn pdfrune_c_free_string(s: *mut c_char) {
     if !s.is_null() {
         unsafe {
             let _ = CString::from_raw(s);
@@ -37,7 +37,7 @@ pub extern "C" fn rupdf_c_free_string(s: *mut c_char) {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_free_bytes(b: *mut u8, len: usize) {
+pub extern "C" fn pdfrune_c_free_bytes(b: *mut u8, len: usize) {
     if !b.is_null() && len > 0 {
         unsafe {
             let _ = Vec::from_raw_parts(b, len, len);
@@ -46,13 +46,13 @@ pub extern "C" fn rupdf_c_free_bytes(b: *mut u8, len: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_new() -> *mut Document {
+pub extern "C" fn pdfrune_c_new() -> *mut Document {
     let doc = Document::new();
     Box::into_raw(Box::new(doc))
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_open(bytes: *const u8, len: usize) -> *mut Document {
+pub extern "C" fn pdfrune_c_open(bytes: *const u8, len: usize) -> *mut Document {
     if bytes.is_null() || len == 0 {
         return ptr::null_mut();
     }
@@ -64,12 +64,12 @@ pub extern "C" fn rupdf_c_open(bytes: *const u8, len: usize) -> *mut Document {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_open_bytes(bytes: *const u8, len: usize) -> *mut Document {
-    rupdf_c_open(bytes, len)
+pub extern "C" fn pdfrune_c_open_bytes(bytes: *const u8, len: usize) -> *mut Document {
+    pdfrune_c_open(bytes, len)
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_open_path(path: *const c_char) -> *mut Document {
+pub extern "C" fn pdfrune_c_open_path(path: *const c_char) -> *mut Document {
     if path.is_null() {
         return ptr::null_mut();
     }
@@ -81,7 +81,7 @@ pub extern "C" fn rupdf_c_open_path(path: *const c_char) -> *mut Document {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_free(doc: *mut Document) {
+pub extern "C" fn pdfrune_c_free(doc: *mut Document) {
     if !doc.is_null() {
         unsafe {
             drop(Box::from_raw(doc));
@@ -90,7 +90,7 @@ pub extern "C" fn rupdf_c_free(doc: *mut Document) {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_page_count(doc: *mut Document) -> i32 {
+pub extern "C" fn pdfrune_c_page_count(doc: *mut Document) -> i32 {
     if doc.is_null() {
         return -1;
     }
@@ -99,7 +99,7 @@ pub extern "C" fn rupdf_c_page_count(doc: *mut Document) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_is_encrypted(doc: *mut Document) -> i32 {
+pub extern "C" fn pdfrune_c_is_encrypted(doc: *mut Document) -> i32 {
     if doc.is_null() {
         return 0;
     }
@@ -112,7 +112,7 @@ pub extern "C" fn rupdf_c_is_encrypted(doc: *mut Document) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_authenticate(doc: *mut Document, password: *const c_char) -> i32 {
+pub extern "C" fn pdfrune_c_authenticate(doc: *mut Document, password: *const c_char) -> i32 {
     if doc.is_null() {
         return 0;
     }
@@ -125,7 +125,7 @@ pub extern "C" fn rupdf_c_authenticate(doc: *mut Document, password: *const c_ch
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_get_metadata_json(doc: *mut Document) -> *mut c_char {
+pub extern "C" fn pdfrune_c_get_metadata_json(doc: *mut Document) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -136,7 +136,7 @@ pub extern "C" fn rupdf_c_get_metadata_json(doc: *mut Document) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_set_metadata(
+pub extern "C" fn pdfrune_c_set_metadata(
     doc: *mut Document,
     key: *const c_char,
     val: *const c_char,
@@ -154,7 +154,7 @@ pub extern "C" fn rupdf_c_set_metadata(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_page_info_json(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_page_info_json(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -176,7 +176,7 @@ pub extern "C" fn rupdf_c_page_info_json(doc: *mut Document, page: usize) -> *mu
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_extract_text(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_extract_text(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -188,7 +188,7 @@ pub extern "C" fn rupdf_c_extract_text(doc: *mut Document, page: usize) -> *mut 
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_extract_words_json(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_extract_words_json(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -219,7 +219,7 @@ pub extern "C" fn rupdf_c_extract_words_json(doc: *mut Document, page: usize) ->
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_extract_blocks_json(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_extract_blocks_json(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -249,7 +249,7 @@ pub extern "C" fn rupdf_c_extract_blocks_json(doc: *mut Document, page: usize) -
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_search_page_json(
+pub extern "C" fn pdfrune_c_search_page_json(
     doc: *mut Document,
     page: usize,
     needle: *const c_char,
@@ -273,7 +273,7 @@ pub extern "C" fn rupdf_c_search_page_json(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_search_all_json(
+pub extern "C" fn pdfrune_c_search_all_json(
     doc: *mut Document,
     needle: *const c_char,
     regex: i32,
@@ -305,7 +305,7 @@ pub extern "C" fn rupdf_c_search_all_json(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_find_tables_json(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_find_tables_json(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -333,7 +333,7 @@ pub extern "C" fn rupdf_c_find_tables_json(doc: *mut Document, page: usize) -> *
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_page_to_markdown(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_page_to_markdown(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -345,7 +345,7 @@ pub extern "C" fn rupdf_c_page_to_markdown(doc: *mut Document, page: usize) -> *
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_doc_to_markdown(doc: *mut Document) -> *mut c_char {
+pub extern "C" fn pdfrune_c_doc_to_markdown(doc: *mut Document) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -357,7 +357,7 @@ pub extern "C" fn rupdf_c_doc_to_markdown(doc: *mut Document) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_page_to_html(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_page_to_html(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -369,7 +369,7 @@ pub extern "C" fn rupdf_c_page_to_html(doc: *mut Document, page: usize) -> *mut 
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_doc_to_html(doc: *mut Document) -> *mut c_char {
+pub extern "C" fn pdfrune_c_doc_to_html(doc: *mut Document) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -381,7 +381,7 @@ pub extern "C" fn rupdf_c_doc_to_html(doc: *mut Document) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_to_rag_chunks_json(doc: *mut Document, max_chars: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_to_rag_chunks_json(doc: *mut Document, max_chars: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -412,7 +412,7 @@ pub extern "C" fn rupdf_c_to_rag_chunks_json(doc: *mut Document, max_chars: usiz
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_page_to_svg(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_page_to_svg(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -424,7 +424,7 @@ pub extern "C" fn rupdf_c_page_to_svg(doc: *mut Document, page: usize) -> *mut c
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_render_page_rgba(
+pub extern "C" fn pdfrune_c_render_page_rgba(
     doc: *mut Document,
     page: usize,
     dpi: f64,
@@ -462,7 +462,7 @@ pub extern "C" fn rupdf_c_render_page_rgba(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_render_page_png(
+pub extern "C" fn pdfrune_c_render_page_png(
     doc: *mut Document,
     page: usize,
     dpi: f64,
@@ -487,7 +487,7 @@ pub extern "C" fn rupdf_c_render_page_png(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_pixmap_to_png(
+pub extern "C" fn pdfrune_c_pixmap_to_png(
     data: *const u8,
     data_len: usize,
     width: u32,
@@ -498,7 +498,7 @@ pub extern "C" fn rupdf_c_pixmap_to_png(
         return ptr::null_mut();
     }
     let slice = unsafe { std::slice::from_raw_parts(data, data_len) };
-    let pix = rupdf_core::Pixmap {
+    let pix = pdfrune::Pixmap {
         width,
         height,
         data: slice.to_vec(),
@@ -518,7 +518,7 @@ pub extern "C" fn rupdf_c_pixmap_to_png(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_get_toc_json(doc: *mut Document) -> *mut c_char {
+pub extern "C" fn pdfrune_c_get_toc_json(doc: *mut Document) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -546,16 +546,16 @@ struct RJsonTocEntry {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_set_toc_json(doc: *mut Document, json_str: *const c_char) -> i32 {
+pub extern "C" fn pdfrune_c_set_toc_json(doc: *mut Document, json_str: *const c_char) -> i32 {
     if doc.is_null() {
         return 0;
     }
     let d = unsafe { &mut *doc };
     let s = unsafe { c_to_str(json_str) };
     if let Ok(entries) = serde_json::from_str::<Vec<RJsonTocEntry>>(s) {
-        let mapped: Vec<rupdf_core::nav::TocEntry> = entries
+        let mapped: Vec<pdfrune::nav::TocEntry> = entries
             .into_iter()
-            .map(|e| rupdf_core::nav::TocEntry {
+            .map(|e| pdfrune::nav::TocEntry {
                 level: e.level,
                 title: e.title,
                 page: e.page,
@@ -571,7 +571,7 @@ pub extern "C" fn rupdf_c_set_toc_json(doc: *mut Document, json_str: *const c_ch
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_get_links_json(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_get_links_json(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -601,7 +601,7 @@ pub extern "C" fn rupdf_c_get_links_json(doc: *mut Document, page: usize) -> *mu
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_insert_link(
+pub extern "C" fn pdfrune_c_insert_link(
     doc: *mut Document,
     page: usize,
     x0: f64,
@@ -634,7 +634,7 @@ pub extern "C" fn rupdf_c_insert_link(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_delete_link(
+pub extern "C" fn pdfrune_c_delete_link(
     doc: *mut Document,
     page: usize,
     xref: u32,
@@ -659,7 +659,7 @@ pub extern "C" fn rupdf_c_delete_link(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_get_images_json(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_get_images_json(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -689,7 +689,7 @@ pub extern "C" fn rupdf_c_get_images_json(doc: *mut Document, page: usize) -> *m
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_extract_image_bytes(
+pub extern "C" fn pdfrune_c_extract_image_bytes(
     doc: *mut Document,
     xref: u32,
     out_w: *mut i32,
@@ -726,7 +726,7 @@ pub extern "C" fn rupdf_c_extract_image_bytes(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_insert_image_bytes(
+pub extern "C" fn pdfrune_c_insert_image_bytes(
     doc: *mut Document,
     page: usize,
     x0: f64,
@@ -749,7 +749,7 @@ pub extern "C" fn rupdf_c_insert_image_bytes(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_get_annots_json(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_get_annots_json(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -780,7 +780,7 @@ pub extern "C" fn rupdf_c_get_annots_json(doc: *mut Document, page: usize) -> *m
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_add_annot(
+pub extern "C" fn pdfrune_c_add_annot(
     doc: *mut Document,
     page: usize,
     subtype: *const c_char,
@@ -817,7 +817,7 @@ pub extern "C" fn rupdf_c_add_annot(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_delete_annot(doc: *mut Document, page: usize, xref: u32) -> i32 {
+pub extern "C" fn pdfrune_c_delete_annot(doc: *mut Document, page: usize, xref: u32) -> i32 {
     if doc.is_null() {
         return 0;
     }
@@ -829,7 +829,7 @@ pub extern "C" fn rupdf_c_delete_annot(doc: *mut Document, page: usize, xref: u3
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_apply_redactions(doc: *mut Document, page: usize) -> i32 {
+pub extern "C" fn pdfrune_c_apply_redactions(doc: *mut Document, page: usize) -> i32 {
     if doc.is_null() {
         return -1;
     }
@@ -841,7 +841,7 @@ pub extern "C" fn rupdf_c_apply_redactions(doc: *mut Document, page: usize) -> i
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_get_widgets_json(doc: *mut Document, page: usize) -> *mut c_char {
+pub extern "C" fn pdfrune_c_get_widgets_json(doc: *mut Document, page: usize) -> *mut c_char {
     if doc.is_null() {
         return ptr::null_mut();
     }
@@ -871,7 +871,7 @@ pub extern "C" fn rupdf_c_get_widgets_json(doc: *mut Document, page: usize) -> *
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_add_widget(
+pub extern "C" fn pdfrune_c_add_widget(
     doc: *mut Document,
     page: usize,
     name: *const c_char,
@@ -897,7 +897,7 @@ pub extern "C" fn rupdf_c_add_widget(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_set_field_value(
+pub extern "C" fn pdfrune_c_set_field_value(
     doc: *mut Document,
     page: usize,
     name: *const c_char,
@@ -922,7 +922,7 @@ pub extern "C" fn rupdf_c_set_field_value(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_new_page(doc: *mut Document, pno: i32, width: f64, height: f64) -> i32 {
+pub extern "C" fn pdfrune_c_new_page(doc: *mut Document, pno: i32, width: f64, height: f64) -> i32 {
     if doc.is_null() {
         return -1;
     }
@@ -935,7 +935,7 @@ pub extern "C" fn rupdf_c_new_page(doc: *mut Document, pno: i32, width: f64, hei
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_delete_page(doc: *mut Document, pno: i32) -> i32 {
+pub extern "C" fn pdfrune_c_delete_page(doc: *mut Document, pno: i32) -> i32 {
     if doc.is_null() || pno < 0 {
         return 0;
     }
@@ -947,7 +947,7 @@ pub extern "C" fn rupdf_c_delete_page(doc: *mut Document, pno: i32) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_insert_text(
+pub extern "C" fn pdfrune_c_insert_text(
     doc: *mut Document,
     page: usize,
     x: f64,
@@ -971,7 +971,7 @@ pub extern "C" fn rupdf_c_insert_text(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_draw_rect(
+pub extern "C" fn pdfrune_c_draw_rect(
     doc: *mut Document,
     page: usize,
     x0: f64,
@@ -1010,7 +1010,7 @@ pub extern "C" fn rupdf_c_draw_rect(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_to_bytes(
+pub extern "C" fn pdfrune_c_to_bytes(
     doc: *mut Document,
     deflate: i32,
     encrypt: i32,
@@ -1045,7 +1045,7 @@ pub extern "C" fn rupdf_c_to_bytes(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_merge_pdfs(
+pub extern "C" fn pdfrune_c_merge_pdfs(
     docs_bytes: *const *const u8,
     docs_lens: *const usize,
     count: usize,
@@ -1090,7 +1090,7 @@ pub extern "C" fn rupdf_c_merge_pdfs(
 }
 
 #[no_mangle]
-pub extern "C" fn rupdf_c_save(
+pub extern "C" fn pdfrune_c_save(
     doc: *mut Document,
     path: *const c_char,
     deflate: i32,

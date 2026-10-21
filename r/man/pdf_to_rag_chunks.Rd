@@ -7,7 +7,7 @@
 pdf_to_rag_chunks(doc, max_chars = 500L)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{max_chars}{Maximum character length per chunk. Default is `500L`.}
 }

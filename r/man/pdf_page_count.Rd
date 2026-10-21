@@ -7,7 +7,7 @@
 pdf_page_count(doc)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 }
 \value{
 An integer count of pages.

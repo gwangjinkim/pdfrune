@@ -1,4 +1,4 @@
-# rupdf — Ultra-Fast, Memory-Safe PDF Engine for Common Lisp
+# pdfrune — Ultra-Fast, Memory-Safe PDF Engine for Common Lisp
 
 > **Author**: Gwang-Jin Kim \<gwang.jin.kim.phd@gmail.com\>  
 > **License**: [MIT](../LICENSE-MIT) or [Apache-2.0](../LICENSE-APACHE)  
@@ -9,7 +9,7 @@
 
 ### Abstract
 
-`rupdf` is a clean-room, high-performance, and permissively licensed Common Lisp PDF library modeled after the design philosophy of Edi Weitz's libraries (`cl-ppcre`, `cl-fad`, `drakma`). Built on top of the memory-safe Rust `rupdf-core` engine via CFFI, it provides Common Lisp developers with full PDF capabilities:
+`pdfrune` is a clean-room, high-performance, and permissively licensed Common Lisp PDF library modeled after the design philosophy of Edi Weitz's libraries (`cl-ppcre`, `cl-fad`, `drakma`). Built on top of the memory-safe Rust `pdfrune` engine via CFFI, it provides Common Lisp developers with full PDF capabilities:
 
 * **High-Speed Text Extraction & Layout**: extract plain text, word bounding boxes, structural layout blocks, and SIMD text search.
 * **Modern Document Understanding**: automated table detection with Markdown export, page/document Markdown & HTML rendering, and AI/RAG semantic chunking with bounding box grounding.
@@ -46,24 +46,24 @@
 
 ## Installation & Requirements
 
-`rupdf` requires an ANSI-compliant Common Lisp implementation with `CFFI` and `YASON`.
+`pdfrune` requires an ANSI-compliant Common Lisp implementation with `CFFI` and `YASON`.
 
 ### Quicklisp & Roswell Setup
 
-To use `rupdf` locally before or alongside Ultralisp/Quicklisp releases:
+To use `pdfrune` locally before or alongside Ultralisp/Quicklisp releases:
 
 #### Option A: Roswell Local Projects
 Symlink the repository root directly into Roswell's local projects directory:
 
 ```bash
 mkdir -p ~/.roswell/local-projects
-ln -s "$(pwd)" ~/.roswell/local-projects/rupdf
+ln -s "$(pwd)" ~/.roswell/local-projects/pdfrune
 ```
 
 Then in Roswell:
 ```lisp
 (ql:register-local-projects)
-(ql:quickload :rupdf)
+(ql:quickload :cl-pdfrune)
 ```
 
 #### Option B: Standard Quicklisp Local Projects
@@ -71,35 +71,35 @@ Symlink the repository root into Quicklisp's local projects directory:
 
 ```bash
 mkdir -p ~/quicklisp/local-projects
-ln -s "$(pwd)" ~/quicklisp/local-projects/rupdf
+ln -s "$(pwd)" ~/quicklisp/local-projects/pdfrune
 ```
 
 Then in your REPL:
 ```lisp
 (ql:register-local-projects)
-(ql:quickload :rupdf)
+(ql:quickload :cl-pdfrune)
 ```
 
 #### Option C: Direct ASDF Central Registry
-Push the directory containing `rupdf.asd` into `asdf:*central-registry*`:
+Push the directory containing `pdfrune.asd` into `asdf:*central-registry*`:
 
 ```lisp
-(push #p"/path/to/rupdf/" asdf:*central-registry*)
-;; or (push #p"/path/to/rupdf/lisp/" asdf:*central-registry*)
-(asdf:load-system :rupdf)
+(push #p"/path/to/pdfrune/" asdf:*central-registry*)
+;; or (push #p"/path/to/pdfrune/lisp/" asdf:*central-registry*)
+(asdf:load-system :pdfrune)
 ```
 
 ---
 
 ## Shared Library Setup & Flexibility
 
-`rupdf` binds to the native C shared library `librupdf_ffi` (or `rupdf_ffi.dll` on Windows).
+`pdfrune` binds to the native C shared library `libpdfrune_ffi` (or `pdfrune_ffi.dll` on Windows).
 
 ### 1. Automated Discovery Order
-`rupdf` automatically scans for `librupdf_ffi` in the following priority:
-1. `rupdf:*rupdf-library-path*` (if explicitly set in Lisp)
-2. Environment variables: `RUPDF_LIBRARY_PATH`, `RUPDF_LIB_PATH`, or `RUPDF_LIB`
-3. System ASDF directories: `target/release/`, `../target/release/`, `crates/rupdf-ffi/target/release/`
+`pdfrune` automatically scans for `libpdfrune_ffi` in the following priority:
+1. `pdfrune:*pdfrune-library-path*` (if explicitly set in Lisp)
+2. Environment variables: `PDFRUNE_LIBRARY_PATH`, `PDFRUNE_LIB_PATH`, or `PDFRUNE_LIB`
+3. System ASDF directories: `target/release/`, `../target/release/`, `crates/pdfrune-ffi/target/release/`
 4. Standard OS library locations: `/opt/homebrew/lib/` (macOS Apple Silicon), `/usr/local/lib/`, `/usr/lib/`, `~/.local/lib/`
 5. Default CFFI search paths
 
@@ -107,19 +107,19 @@ Push the directory containing `rupdf.asd` into `asdf:*central-registry*`:
 To compile the native library from the repository root:
 
 ```bash
-cargo build --release -p rupdf-ffi
+cargo build --release -p pdfrune-ffi
 ```
 
 Or directly from your Common Lisp REPL:
 ```lisp
-(rupdf:build-native-library)
+(pdfrune:build-native-library)
 ```
 
 ### 3. Interactive Restarts
-If the native shared library has not yet been built, `rupdf` will signal an informative error with interactive restarts:
-* `[BUILD-NATIVE-LIBRARY]`: Automatically invokes `cargo build --release -p rupdf-ffi` and loads the resulting binary.
+If the native shared library has not yet been built, `pdfrune` will signal an informative error with interactive restarts:
+* `[BUILD-NATIVE-LIBRARY]`: Automatically invokes `cargo build --release -p pdfrune-ffi` and loads the resulting binary.
 * `[RETRY-LOAD]`: Retries candidate search and loading.
-* `[SPECIFY-LIBRARY-PATH]`: Prompts for a custom path to `librupdf_ffi`.
+* `[SPECIFY-LIBRARY-PATH]`: Prompts for a custom path to `libpdfrune_ffi`.
 
 ---
 
@@ -129,21 +129,21 @@ If the native shared library has not yet been built, `rupdf` will signal an info
 If you encounter an error like:
 ```text
 fatal error encountered in SBCL: core was built for runtime "A" but this is "B"
-debugger invoked on UIOP/RUN-PROGRAM:SUBPROCESS-ERROR: ("ocicl" "install" "rupdf")
+debugger invoked on UIOP/RUN-PROGRAM:SUBPROCESS-ERROR: ("ocicl" "install" "pdfrune")
 ```
 This occurs because:
-1. **ASDF didn't find `:rupdf` locally yet**, triggering your environment's `ocicl` fallback hook.
+1. **ASDF didn't find `:pdfrune` locally yet**, triggering your environment's `ocicl` fallback hook.
 2. **`ocicl`'s SBCL runtime binary was updated** by Homebrew or a package manager, causing a hash mismatch with `ocicl`'s dumped `.core` file.
 
 **Resolution**:
-1. Register `rupdf` in your local projects:
+1. Register `pdfrune` in your local projects:
    ```bash
-   ln -s "$(pwd)" ~/.roswell/local-projects/rupdf
+   ln -s "$(pwd)" ~/.roswell/local-projects/pdfrune
    ```
    Or in your REPL before loading:
    ```lisp
-   (push #p"/path/to/rupdf/" asdf:*central-registry*)
-   (asdf:load-system :rupdf)
+   (push #p"/path/to/pdfrune/" asdf:*central-registry*)
+   (asdf:load-system :pdfrune)
    ```
 2. To fix the `ocicl` / SBCL runtime core mismatch, refresh your SBCL binaries:
    ```bash
@@ -158,14 +158,14 @@ This occurs because:
 ### Reading Text and Searching
 
 ```lisp
-(rupdf:with-open-pdf (doc #p"paper.pdf")
-  (format t "Document has ~D pages.~%" (rupdf:page-count doc))
+(pdfrune:with-open-pdf (doc #p"paper.pdf")
+  (format t "Document has ~D pages.~%" (pdfrune:page-count doc))
   
   ;; Extract plain text from page 0
-  (format t "Page 1 Text:~%~A~%" (rupdf:extract-text doc 0))
+  (format t "Page 1 Text:~%~A~%" (pdfrune:extract-text doc 0))
   
   ;; Search for matches across the entire document
-  (dolist (match (rupdf:search-document doc "Common Lisp"))
+  (dolist (match (pdfrune:search-document doc "Common Lisp"))
     (format t "Found on page ~D at bbox ~A~%"
             (getf match :page)
             (getf match :bbox))))
@@ -174,48 +174,48 @@ This occurs because:
 ### Creating and Modifying Documents
 
 ```lisp
-(rupdf:with-open-pdf (doc (rupdf:new-pdf))
+(pdfrune:with-open-pdf (doc (pdfrune:new-pdf))
   ;; Add a standard letter page (612 x 792 pt)
-  (rupdf:new-page doc :width 612.0 :height 792.0)
+  (pdfrune:new-page doc :width 612.0 :height 792.0)
   
   ;; Draw decorative rectangle
-  (rupdf:draw-rect doc 0 '(50.0 700.0 562.0 750.0)
+  (pdfrune:draw-rect doc 0 '(50.0 700.0 562.0 750.0)
                    :fill-color '(0.1 0.2 0.5)
                    :stroke-color '(0.0 0.0 0.0)
                    :stroke-width 1.5)
                    
   ;; Insert text
-  (rupdf:insert-text doc 0 '(72.0 720.0) "Hello from Common Lisp & Rust!"
+  (pdfrune:insert-text doc 0 '(72.0 720.0) "Hello from Common Lisp & Rust!"
                      :font-size 18.0
                      :color '(1.0 1.0 1.0))
                      
   ;; Save to disk with Flate compression
-  (rupdf:save-document doc #p"hello.pdf" :deflate t))
+  (pdfrune:save-document doc #p"hello.pdf" :deflate t))
 ```
 
 ### Table Detection and Markdown
 
 ```lisp
-(rupdf:with-open-pdf (doc #p"financial_report.pdf")
-  (let ((tables (rupdf:find-tables doc 0)))
+(pdfrune:with-open-pdf (doc #p"financial_report.pdf")
+  (let ((tables (pdfrune:find-tables doc 0)))
     (dolist (tab tables)
       (format t "Detected ~Dx~D table:~%"
-              (rupdf:table-row-count tab)
-              (rupdf:table-col-count tab))
-      (format t "~A~%~%" (rupdf:table-markdown tab)))))
+              (pdfrune:table-row-count tab)
+              (pdfrune:table-col-count tab))
+      (format t "~A~%~%" (pdfrune:table-markdown tab)))))
 ```
 
 ### Rasterization & PNG Export
 
 ```lisp
-(rupdf:with-open-pdf (doc #p"manual.pdf")
+(pdfrune:with-open-pdf (doc #p"manual.pdf")
   ;; Render page 0 at 300 DPI
-  (let ((pix (rupdf:render-page doc 0 :dpi 300.0)))
+  (let ((pix (pdfrune:render-page doc 0 :dpi 300.0)))
     (format t "Rendered pixmap: ~Dx~D px~%"
-            (rupdf:pixmap-width pix)
-            (rupdf:pixmap-height pix))
+            (pdfrune:pixmap-width pix)
+            (pdfrune:pixmap-height pix))
     ;; Save as PNG
-    (rupdf:save-pixmap pix #p"page1.png")))
+    (pdfrune:save-pixmap pix #p"page1.png")))
 ```
 
 ---
@@ -420,10 +420,10 @@ Authenticates with user or owner password. Returns `T` on success.
 
 ### Conditions & Errors
 
-* `rupdf-error`: Root condition for all `rupdf` errors.
-* `rupdf-file-error`: Signaled when a PDF file cannot be opened or parsed. Reader: `rupdf-error-pathname`.
-* `rupdf-crypto-error`: Signaled when password authentication fails or an encrypted stream cannot be read.
-* `rupdf-page-out-of-bounds-error`: Signaled when a page index is outside `[0, page-count)`. Readers: `rupdf-error-page-index`, `rupdf-error-page-count`.
+* `pdfrune-error`: Root condition for all `pdfrune` errors.
+* `pdfrune-file-error`: Signaled when a PDF file cannot be opened or parsed. Reader: `pdfrune-error-pathname`.
+* `pdfrune-crypto-error`: Signaled when password authentication fails or an encrypted stream cannot be read.
+* `pdfrune-page-out-of-bounds-error`: Signaled when a page index is outside `[0, page-count)`. Readers: `pdfrune-error-page-index`, `pdfrune-error-page-count`.
 
 ---
 
@@ -432,15 +432,15 @@ Authenticates with user or owner password. Returns `T` on success.
 Run the full test suite with ASDF / Quicklisp:
 
 ```lisp
-(asdf:test-system :rupdf)
+(asdf:test-system :cl-pdfrune)
 ```
 
 Or from the command line:
 
 ```bash
 sbcl --noinform --non-interactive \
-  --eval '(ql:quickload :rupdf-test)' \
-  --eval '(asdf:test-system :rupdf)'
+  --eval '(ql:quickload :cl-pdfrune-test)' \
+  --eval '(asdf:test-system :cl-pdfrune)'
 ```
 
 ---

@@ -7,7 +7,7 @@
 pdf_insert_link(doc, page = 1L, rect, uri = NULL, dest_page = NULL)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 
@@ -18,7 +18,7 @@ pdf_insert_link(doc, page = 1L, rect, uri = NULL, dest_page = NULL)
 \item{dest_page}{Optional 1-based page number for internal jump links.}
 }
 \value{
-The modified `rupdf_document` (invisibly).
+The modified `pdfrune_document` (invisibly).
 }
 \description{
 Insert a Hyperlink onto a PDF Page

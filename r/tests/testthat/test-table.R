@@ -22,7 +22,7 @@ test_that("Table detection and conversions work", {
   expect_equal(length(tabs), 1L)
 
   tbl <- tabs[[1]]
-  expect_s3_class(tbl, "rupdf_table")
+  expect_s3_class(tbl, "pdfrune_table")
   expect_equal(tbl$row_count, 4L)
   expect_equal(tbl$col_count, 3L)
   expect_equal(tbl$header, c("Quarter", "Revenue", "Growth"))

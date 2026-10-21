@@ -1,6 +1,6 @@
-# rupdf Common Lisp API Reference
+# pdfrune Common Lisp API Reference
 
-The `rupdf` package (nickname `:cl-rupdf`) provides high-performance, ANSI-compliant Common Lisp bindings for the `rupdf` engine.
+The `pdfrune` package (nickname `:cl-pdfrune`) provides high-performance, ANSI-compliant Common Lisp bindings for the `pdfrune` engine.
 
 All code is strictly portable across ANSI Common Lisp implementations (SBCL, CCL, ECL, ABCL, CLISP, Allegro, LispWorks).
 
@@ -9,9 +9,9 @@ All code is strictly portable across ANSI Common Lisp implementations (SBCL, CCL
 ## Package Summary
 
 ```lisp
-(in-package :rupdf)
+(in-package :pdfrune)
 ;; or
-(use-package :rupdf)
+(use-package :pdfrune)
 ```
 
 Exported symbols include:

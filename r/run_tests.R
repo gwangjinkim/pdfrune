@@ -1,5 +1,5 @@
 library(testthat)
-library(rupdf)
+library(pdfrune)
 
 results <- test_dir("tests/testthat", reporter = "summary")
 if (any(as.data.frame(results)$failed > 0)) {

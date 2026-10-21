@@ -3,9 +3,9 @@
 #' Automatically detects multi-column tabular layouts on a page and extracts
 #' headers, rows, cells, and bounding boxes.
 #'
-#' @param doc A `rupdf_document` object.
+#' @param doc A `pdfrune_document` object.
 #' @param page 1-based page index. Default is `1L`.
-#' @return A list of `rupdf_table` objects.
+#' @return A list of `pdfrune_table` objects.
 #' @export
 #' @examples
 #' doc <- pdf_new()
@@ -17,9 +17,9 @@
 #' tabs <- pdf_find_tables(doc, 1L)
 #' length(tabs)
 pdf_find_tables <- function(doc, page = 1L) {
-  stopifnot(inherits(doc, "rupdf_document"))
+  stopifnot(inherits(doc, "pdfrune_document"))
   stopifnot(page >= 1L)
-  raw_json <- .Call(C_rupdf_find_tables_json, doc$ptr, as.integer(page - 1L))
+  raw_json <- .Call(C_pdfrune_find_tables_json, doc$ptr, as.integer(page - 1L))
   parsed <- jsonlite::fromJSON(raw_json, simplifyVector = FALSE)
   if (length(parsed) == 0) {
     return(list())
@@ -52,18 +52,18 @@ pdf_find_tables <- function(doc, page = 1L) {
           t$markdown
         }
       ),
-      class = "rupdf_table"
+      class = "pdfrune_table"
     )
   })
 }
 
-#' Print Method for rupdf Table
+#' Print Method for pdfrune Table
 #'
-#' @param x A `rupdf_table` object.
+#' @param x A `pdfrune_table` object.
 #' @param ... Additional arguments (unused).
 #' @export
-print.rupdf_table <- function(x, ...) {
-  cat("<rupdf_table: ", x$row_count, " rows x ", x$col_count, " cols>\n", sep = "")
+print.pdfrune_table <- function(x, ...) {
+  cat("<pdfrune_table: ", x$row_count, " rows x ", x$col_count, " cols>\n", sep = "")
   cat("BBox: [", paste(round(x$bbox, 1), collapse = ", "), "]\n", sep = "")
   if (nzchar(x$markdown)) {
     cat(x$markdown, "\n")

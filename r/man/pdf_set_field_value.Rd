@@ -7,7 +7,7 @@
 pdf_set_field_value(doc, page = 1L, field_name, value)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 

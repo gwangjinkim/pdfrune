@@ -1,12 +1,12 @@
-# Python API Reference (`rupdf`)
+# Python API Reference (`pdfrune`)
 
-This document describes every class, method, and function exported by the `rupdf` Python package.
+This document describes every class, method, and function exported by the `pdfrune` Python package.
 
 ---
 
 ## Module-Level Functions
 
-### `rupdf.open(filename=None, *, stream=None, filetype=None) -> Document`
+### `pdfrune.open(filename=None, *, stream=None, filetype=None) -> Document`
 Opens an existing PDF document or creates a new empty PDF document.
 - **`filename`**: `str | PathLike | bytes | BinaryIO | None`
   - If `None` (and `stream` is `None`), creates a new empty in-memory PDF document.
@@ -15,26 +15,26 @@ Opens an existing PDF document or creates a new empty PDF document.
   - If a file-like object with `.read()`, reads the bytes and parses the PDF.
 - **`stream`**: Optional `bytes | bytearray | BinaryIO` containing PDF data (PyMuPDF `fitz.open(stream=..., filetype="pdf")` compatible).
 
-### `rupdf.merge(documents: list[Document | str | PathLike]) -> Document`
+### `pdfrune.merge(documents: list[Document | str | PathLike]) -> Document`
 Combines multiple `Document` instances or PDF file paths into a single new `Document` preserving all pages and resources.
 
-### `rupdf.batch_extract(inputs: list[Document | str | PathLike | bytes]) -> list[str]`
+### `pdfrune.batch_extract(inputs: list[Document | str | PathLike | bytes]) -> list[str]`
 Extracts plain text from a batch of PDF documents concurrently across all CPU cores using `rayon` with the Python GIL released.
 
-### `rupdf.batch_render(source: Document | str | PathLike | bytes, *, dpi: float = 72.0) -> list[Pixmap]`
+### `pdfrune.batch_render(source: Document | str | PathLike | bytes, *, dpi: float = 72.0) -> list[Pixmap]`
 Renders all pages of a PDF document in parallel across CPU cores with the Python GIL released, returning a list of `Pixmap` objects in page order.
 
-### `rupdf.benchmark(pages: int = 50) -> dict[str, float | int]`
+### `pdfrune.benchmark(pages: int = 50) -> dict[str, float | int]`
 Synthesizes a `pages`-page PDF in Rust and measures multi-core throughput (`parse_ms`, `extract_ms`, `search_ms`, `markdown_ms`, `render_ms`, `pages_per_sec_extract`, `pages_per_sec_render`).
 
-### `rupdf.version() -> str`
-Returns the version string of the underlying `rupdf-core` engine.
+### `pdfrune.version() -> str`
+Returns the version string of the underlying `pdfrune` engine.
 
 ---
 
 ## `Document`
 
-Represents an open or newly created PDF document. Supports context managers (`with rupdf.open(...) as doc:`), indexing (`doc[0]`, `doc[-1]`), slicing (`doc[1:4]`), `len(doc)`, and iteration (`for page in doc:`).
+Represents an open or newly created PDF document. Supports context managers (`with pdfrune.open(...) as doc:`), indexing (`doc[0]`, `doc[-1]`), slicing (`doc[1:4]`), `len(doc)`, and iteration (`for page in doc:`).
 
 ### Properties
 - **`page_count -> int`**: Number of pages in the document.

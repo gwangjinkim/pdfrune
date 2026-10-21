@@ -1,8 +1,8 @@
-;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: RUPDF; Base: 10 -*-
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: PDFRUNE; Base: 10 -*-
 ;;;
 ;;; Copyright (c) 2026, Gwang-Jin Kim. All rights reserved.
 
-(in-package :rupdf)
+(in-package :cl-pdfrune)
 
 (defstruct (pixmap (:constructor %make-pixmap))
   "Represents a rendered 2D raster image with RGBA pixel samples."
@@ -32,7 +32,7 @@
                                           out-stride
                                           out-len)))
             (when (or (null ptr) (cffi:null-pointer-p ptr))
-              (error 'rupdf-error :message "Failed to rasterize page to pixmap."))
+              (error 'pdfrune-error :message "Failed to rasterize page to pixmap."))
             (let ((w (cffi:mem-ref out-w :int))
                   (h (cffi:mem-ref out-h :int))
                   (stride (cffi:mem-ref out-stride :int))
@@ -46,7 +46,7 @@
 (defun pixmap-to-png (pix)
   "Encodes PIX (a PIXMAP structure) into a PNG byte vector."
   (unless (pixmap-p pix)
-    (error 'rupdf-error :message "Expected a PIXMAP structure."))
+    (error 'pdfrune-error :message "Expected a PIXMAP structure."))
   (let* ((data (pixmap-samples pix))
          (len (length data)))
     (cffi:with-foreign-pointer (foreign-data len)
@@ -59,7 +59,7 @@
                                      (pixmap-height pix)
                                      out-len)))
           (when (or (null ptr) (cffi:null-pointer-p ptr))
-            (error 'rupdf-error :message "Failed to encode pixmap to PNG."))
+            (error 'pdfrune-error :message "Failed to encode pixmap to PNG."))
           (let ((png-len (cffi:mem-ref out-len :size)))
             (foreign-bytes-to-lisp-and-free ptr png-len)))))))
 

@@ -7,12 +7,12 @@
 pdf_set_toc(doc, toc)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{toc}{A data.frame or list of bookmarks. If a data.frame, must have columns `level`, `title`, `page`.}
 }
 \value{
-The modified `rupdf_document` (invisibly).
+The modified `pdfrune_document` (invisibly).
 }
 \description{
 Set the Table of Contents (Outlines / Bookmarks) of a PDF Document

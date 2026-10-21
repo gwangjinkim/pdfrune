@@ -1,8 +1,8 @@
-;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: RUPDF; Base: 10 -*-
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: PDFRUNE; Base: 10 -*-
 ;;;
 ;;; Copyright (c) 2026, Gwang-Jin Kim. All rights reserved.
 
-(in-package :rupdf)
+(in-package :cl-pdfrune)
 
 (defun extract-text (doc page-number)
   "Extracts all plain text from PAGE-NUMBER in DOC as a string."

@@ -1,8 +1,8 @@
-;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: RUPDF; Base: 10 -*-
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: PDFRUNE; Base: 10 -*-
 ;;;
 ;;; Copyright (c) 2026, Gwang-Jin Kim. All rights reserved.
 
-(in-package :rupdf)
+(in-package :cl-pdfrune)
 
 ;;; Image Handling
 
@@ -27,7 +27,7 @@ Returns a plist (:SAMPLES :WIDTH :HEIGHT :FORMAT)."
                                              out-ext
                                              out-len)))
             (when (or (null ptr) (cffi:null-pointer-p ptr))
-              (error 'rupdf-error :message (format nil "Failed to extract image with xref ~D." xref)))
+              (error 'pdfrune-error :message (format nil "Failed to extract image with xref ~D." xref)))
             (let* ((w (cffi:mem-ref out-w :int))
                    (h (cffi:mem-ref out-h :int))
                    (len (cffi:mem-ref out-len :size))
@@ -67,7 +67,7 @@ Source may be specified as FILENAME (path), STREAM (byte vector), or PIXMAP stru
                                      bytes-len
                                      (or overlay "foreground"))))
            (unless (= res 1)
-             (error 'rupdf-error :message "Failed to insert image on page."))
+             (error 'pdfrune-error :message "Failed to insert image on page."))
            t)
       (when allocated
         (cffi:foreign-free bytes-ptr)))))
@@ -97,7 +97,7 @@ Source may be specified as FILENAME (path), STREAM (byte vector), or PIXMAP stru
                              (first rgb) (second rgb) (third rgb)
                              "")))
       (unless (> res 0)
-        (error 'rupdf-error :message "Failed to add highlight annotation."))
+        (error 'pdfrune-error :message "Failed to add highlight annotation."))
       res)))
 
 (defun add-text-annotation (doc page-number point &key (text "") color)
@@ -115,7 +115,7 @@ Source may be specified as FILENAME (path), STREAM (byte vector), or PIXMAP stru
                              (first rgb) (second rgb) (third rgb)
                              "")))
       (unless (> res 0)
-        (error 'rupdf-error :message "Failed to add text annotation."))
+        (error 'pdfrune-error :message "Failed to add text annotation."))
       res)))
 
 (defun add-rect-annotation (doc page-number rect &key color (width 1.0d0))
@@ -132,7 +132,7 @@ Source may be specified as FILENAME (path), STREAM (byte vector), or PIXMAP stru
                              (first rgb) (second rgb) (third rgb)
                              "")))
       (unless (> res 0)
-        (error 'rupdf-error :message "Failed to add rect annotation."))
+        (error 'pdfrune-error :message "Failed to add rect annotation."))
       res)))
 
 (defun delete-annotation (doc page-number xref)
@@ -140,7 +140,7 @@ Source may be specified as FILENAME (path), STREAM (byte vector), or PIXMAP stru
   (check-page-bounds doc page-number)
   (let ((res (%c-delete-annot (pdf-document-pointer doc) page-number xref)))
     (unless (= res 1)
-      (error 'rupdf-error :message "Failed to delete annotation."))
+      (error 'pdfrune-error :message "Failed to delete annotation."))
     t))
 
 ;;; Redactions
@@ -158,7 +158,7 @@ Source may be specified as FILENAME (path), STREAM (byte vector), or PIXMAP stru
                              (first rgb) (second rgb) (third rgb)
                              "")))
       (unless (> res 0)
-        (error 'rupdf-error :message "Failed to stage redaction annotation."))
+        (error 'pdfrune-error :message "Failed to stage redaction annotation."))
       res)))
 
 (defun apply-redactions (doc page-number)
@@ -167,7 +167,7 @@ and graphics underneath from the underlying PDF content stream."
   (check-page-bounds doc page-number)
   (let ((res (%c-apply-redactions (pdf-document-pointer doc) page-number)))
     (unless (>= res 0)
-      (error 'rupdf-error :message "Failed to apply redactions."))
+      (error 'pdfrune-error :message "Failed to apply redactions."))
     t))
 
 ;;; Interactive Form Fields (AcroForm)
@@ -195,7 +195,7 @@ and graphics underneath from the underlying PDF content stream."
                               (first r) (second r) (third r) (fourth r)
                               (or value ""))))
       (unless (> res 0)
-        (error 'rupdf-error :message "Failed to add form widget."))
+        (error 'pdfrune-error :message "Failed to add form widget."))
       res)))
 
 (defun set-widget-value (doc name value &key (page-number 0))
@@ -206,5 +206,5 @@ and graphics underneath from the underlying PDF content stream."
                                  (string name)
                                  (string value))))
     (unless (= res 1)
-      (error 'rupdf-error :message (format nil "Failed to set field value for ~S." name)))
+      (error 'pdfrune-error :message (format nil "Failed to set field value for ~S." name)))
     t))

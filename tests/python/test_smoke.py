@@ -1,6 +1,6 @@
-import rupdf
+import pdfrune
 
 
 def test_version():
-    assert rupdf.__version__ == "0.1.0"
-    assert rupdf.version() == "0.1.0"
+    assert pdfrune.__version__ == "0.1.0"
+    assert pdfrune.version() == "0.1.0"

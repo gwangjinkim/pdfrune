@@ -1,6 +1,6 @@
 test_that("Document creation, page management, and metadata work", {
   doc <- pdf_new()
-  expect_s3_class(doc, "rupdf_document")
+  expect_s3_class(doc, "pdfrune_document")
   expect_equal(pdf_page_count(doc), 0L)
 
   # Add pages
@@ -23,9 +23,9 @@ test_that("Document creation, page management, and metadata work", {
   expect_equal(pdf_page_count(doc), 1L)
 
   # Metadata
-  pdf_set_metadata(doc, list(title = "R rupdf Test", author = "Gwang-Jin Kim"))
+  pdf_set_metadata(doc, list(title = "R pdfrune Test", author = "Gwang-Jin Kim"))
   meta <- pdf_metadata(doc)
-  expect_equal(meta$title, "R rupdf Test")
+  expect_equal(meta$title, "R pdfrune Test")
   expect_equal(meta$author, "Gwang-Jin Kim")
 
   # Serialization roundtrip
@@ -36,7 +36,7 @@ test_that("Document creation, page management, and metadata work", {
   doc_reopened <- pdf_open(bytes = bytes)
   expect_equal(pdf_page_count(doc_reopened), 1L)
   reopened_meta <- pdf_metadata(doc_reopened)
-  expect_equal(reopened_meta$title, "R rupdf Test")
+  expect_equal(reopened_meta$title, "R pdfrune Test")
 })
 
 test_that("pdf_merge combines multiple PDF files", {

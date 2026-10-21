@@ -7,7 +7,7 @@
 pdf_metadata(doc)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 }
 \value{
 A named list of metadata fields (e.g. title, author, subject).

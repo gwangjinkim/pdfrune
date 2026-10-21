@@ -1,0 +1,17 @@
+[package]
+name = "pdfrune-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Python bindings for pdfrune via PyO3"
+
+[lib]
+name = "_pdfrune"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { workspace = true }
+rayon = { workspace = true }
+serde_json = { workspace = true }
+pdfrune = { workspace = true }

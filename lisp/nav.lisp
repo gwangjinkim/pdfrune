@@ -1,8 +1,8 @@
-;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: RUPDF; Base: 10 -*-
+;;; -*- Mode: LISP; Syntax: COMMON-LISP; Package: PDFRUNE; Base: 10 -*-
 ;;;
 ;;; Copyright (c) 2026, Gwang-Jin Kim. All rights reserved.
 
-(in-package :rupdf)
+(in-package :cl-pdfrune)
 
 (defun document-toc (doc)
   "Returns the hierarchical Table of Contents (bookmarks / outlines) of DOC
@@ -28,7 +28,7 @@ TOC must be a list of plists containing :LEVEL, :TITLE, and :PAGE."
              (write-char #\] s)))
          (res (%c-set-toc-json (pdf-document-pointer doc) json-str)))
     (unless (= res 1)
-      (error 'rupdf-error :message "Failed to set Table of Contents."))
+      (error 'pdfrune-error :message "Failed to set Table of Contents."))
     doc))
 
 (defun page-links (doc page-number)
@@ -50,7 +50,7 @@ DEST-PAGE specifies an internal target page number (1-based)."
                               (or uri "")
                               (or dest-page 0))))
     (unless (= res 1)
-      (error 'rupdf-error :message "Failed to insert hyperlink."))
+      (error 'pdfrune-error :message "Failed to insert hyperlink."))
     t))
 
 (defun delete-link (doc page-number &key xref rect)
@@ -62,5 +62,5 @@ DEST-PAGE specifies an internal target page number (1-based)."
                               (or xref 0)
                               (first r) (second r) (third r) (fourth r))))
     (unless (= res 1)
-      (error 'rupdf-error :message "Failed to delete hyperlink."))
+      (error 'pdfrune-error :message "Failed to delete hyperlink."))
     t))

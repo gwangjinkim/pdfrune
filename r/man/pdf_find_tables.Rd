@@ -7,12 +7,12 @@
 pdf_find_tables(doc, page = 1L)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 }
 \value{
-A list of `rupdf_table` objects.
+A list of `pdfrune_table` objects.
 }
 \description{
 Automatically detects multi-column tabular layouts on a page and extracts

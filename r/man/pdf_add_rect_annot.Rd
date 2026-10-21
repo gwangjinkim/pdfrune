@@ -7,7 +7,7 @@
 pdf_add_rect_annot(doc, page = 1L, rect, color = c(1, 0, 0))
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 

@@ -7,14 +7,14 @@
 pdf_render(doc, page = 1L, dpi = 72)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{1-based page index. Default is `1L`.}
 
 \item{dpi}{Resolution in dots per inch. Default is `72.0`.}
 }
 \value{
-An object of class `rupdf_pixmap`.
+An object of class `pdfrune_pixmap`.
 }
 \description{
 Rasterizes a PDF page at the specified resolution (DPI) into an RGBA8888 pixel buffer.

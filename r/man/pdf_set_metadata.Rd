@@ -7,12 +7,12 @@
 pdf_set_metadata(doc, metadata)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{metadata}{A named list or named character vector of metadata key-value pairs.}
 }
 \value{
-The modified `rupdf_document` (invisibly).
+The modified `pdfrune_document` (invisibly).
 }
 \description{
 Set PDF Document Metadata

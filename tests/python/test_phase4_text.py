@@ -1,5 +1,5 @@
-import rupdf
-from rupdf import Rect
+import pdfrune
+from pdfrune import Rect
 
 
 TEXT_PDF_BYTES = (
@@ -11,7 +11,7 @@ TEXT_PDF_BYTES = (
     b"BT\n"
     b"/F1 24 Tf\n"
     b"72 720 Td\n"
-    b"(Welcome to rupdf) Tj\n"
+    b"(Welcome to pdfrune) Tj\n"
     b"/F1 12 Tf\n"
     b"0 -36 Td\n"
     b"[(Fast ) -50 (Rust ) -300 (PDF ) 10 (Engine)] TJ\n"
@@ -47,10 +47,10 @@ TEXT_PDF_BYTES = (
 
 
 def test_extract_plain_text_and_tounicode_cmap():
-    with rupdf.open(stream=TEXT_PDF_BYTES) as doc:
+    with pdfrune.open(stream=TEXT_PDF_BYTES) as doc:
         page = doc[0]
         text = page.extract_text()
-        assert "Welcome to rupdf" in text
+        assert "Welcome to pdfrune" in text
         assert "Fast Rust PDF Engine" in text
         assert "Second line in paragraph one." in text
         assert "Paragraph two has searchable needles." in text
@@ -62,14 +62,14 @@ def test_extract_plain_text_and_tounicode_cmap():
 
 
 def test_extract_words_and_coordinates():
-    with rupdf.open(stream=TEXT_PDF_BYTES) as doc:
+    with pdfrune.open(stream=TEXT_PDF_BYTES) as doc:
         page = doc[0]
         words = page.extract_words()
         assert len(words) >= 14
 
         word_strings = [w[4] for w in words]
         assert "Welcome" in word_strings
-        assert "rupdf" in word_strings
+        assert "pdfrune" in word_strings
         assert "Engine" in word_strings
         assert "CMP" in word_strings
 
@@ -92,22 +92,22 @@ def test_extract_words_and_coordinates():
 
 
 def test_extract_blocks():
-    with rupdf.open(stream=TEXT_PDF_BYTES) as doc:
+    with pdfrune.open(stream=TEXT_PDF_BYTES) as doc:
         page = doc[0]
         blocks = page.extract_blocks()
         assert len(blocks) >= 3
 
         # Each block is (x0, y0, x1, y1, text, block_no, block_type)
-        assert "Welcome to rupdf" in blocks[0][4]
+        assert "Welcome to pdfrune" in blocks[0][4]
         assert "Fast Rust PDF Engine" in blocks[1][4]
         assert "Second line in paragraph one." in blocks[1][4]
         assert any("Paragraph two has searchable needles." in b[4] for b in blocks)
 
 
 def test_page_search():
-    with rupdf.open(stream=TEXT_PDF_BYTES) as doc:
+    with pdfrune.open(stream=TEXT_PDF_BYTES) as doc:
         page = doc[0]
-        hits = page.search("rupdf")
+        hits = page.search("pdfrune")
         assert len(hits) == 1
         assert isinstance(hits[0], Rect)
         assert hits[0].width > 10.0
@@ -119,4 +119,4 @@ def test_page_search():
         assert multi_hits[0].width > 20.0
 
         # PyMuPDF alias search_for
-        assert page.search_for("rupdf") == hits
+        assert page.search_for("pdfrune") == hits

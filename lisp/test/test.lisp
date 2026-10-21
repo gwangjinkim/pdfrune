@@ -2,11 +2,11 @@
 ;;;
 ;;; Copyright (c) 2026, Gwang-Jin Kim. All rights reserved.
 
-(defpackage :rupdf-test
-  (:use :cl :rupdf)
+(defpackage :cl-pdfrune-test
+  (:use :cl :cl-pdfrune)
   (:export :run-all-tests))
 
-(in-package :rupdf-test)
+(in-package :cl-pdfrune-test)
 
 (defvar *test-count* 0
   "Total number of test assertions executed.")
@@ -49,7 +49,7 @@ prints failure with DESCRIPTION and increments *FAILED-COUNT*."
     (let ((txt (extract-text doc 0)))
       (check (search "ANSI Common Lisp PDF Engine" txt) "Extracted text contains inserted string"))
     (close-pdf doc)
-    (check (null (rupdf::pdf-document-pointer doc)) "close-pdf nulls the internal pointer"))
+    (check (null (pdfrune::pdf-document-pointer doc)) "close-pdf nulls the internal pointer"))
 
   ;; with-open-pdf macro verification
   (let ((bytes (with-open-pdf (doc (new-pdf))
@@ -239,7 +239,7 @@ prints failure with DESCRIPTION and increments *FAILED-COUNT*."
   (setf *test-count* 0
         *failed-count* 0)
   (format t "~%****************************************~%")
-  (format t "    Running rupdf Common Lisp Tests     ~%")
+  (format t "    Running pdfrune Common Lisp Tests     ~%")
   (format t "****************************************~%")
   (test-version)
   (test-document-creation-and-lifecycle)
@@ -260,4 +260,4 @@ prints failure with DESCRIPTION and increments *FAILED-COUNT*."
         t)
       (progn
         (format *error-output* "~D TESTS FAILED!~%~%" *failed-count*)
-        (error "~D tests failed in rupdf-test" *failed-count*))))
+        (error "~D tests failed in pdfrune-test" *failed-count*))))

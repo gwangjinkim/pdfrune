@@ -1,6 +1,6 @@
-# R Package Reference: `rupdf`
+# R Package Reference: `pdfrune`
 
-`rupdf` is an ultra-fast, memory-safe, and permissively licensed PDF engine in Rust with native R bindings. It provides high-performance text extraction, tabular data extraction, rendering to RGBA pixmaps and vector SVG, document manipulation, outlines, hyperlinks, image manipulation, annotations, true content-stream redactions, and ISO 32000 standard encryption.
+`pdfrune` is an ultra-fast, memory-safe, and permissively licensed PDF engine in Rust with native R bindings. It provides high-performance text extraction, tabular data extraction, rendering to RGBA pixmaps and vector SVG, document manipulation, outlines, hyperlinks, image manipulation, annotations, true content-stream redactions, and ISO 32000 standard encryption.
 
 ---
 
@@ -8,10 +8,10 @@
 
 ### Using `uvr` (Recommended)
 
-`rupdf` is managed and tested using [`uvr`](https://github.com/astral-sh/uvr). Add and sync in your R project:
+`pdfrune` is managed and tested using [`uvr`](https://github.com/astral-sh/uvr). Add and sync in your R project:
 
 ```bash
-uvr add rupdf
+uvr add pdfrune
 uvr sync
 ```
 
@@ -25,10 +25,10 @@ uvr run script.R
 
 ```r
 # From CRAN (once published):
-install.packages("rupdf")
+install.packages("pdfrune")
 
 # Or from local source package tarball:
-install.packages("rupdf_0.1.0.tar.gz", repos = NULL, type = "source")
+install.packages("pdfrune_0.1.0.tar.gz", repos = NULL, type = "source")
 ```
 
 System Requirements: **Cargo** (Rust toolchain, 1.75+).
@@ -92,7 +92,7 @@ All functions are prefixed with `pdf_` for consistent auto-completion.
 ### Reading and Text Extraction
 
 ```r
-library(rupdf)
+library(pdfrune)
 
 doc <- pdf_open("report.pdf")
 cat("Pages:", pdf_page_count(doc), "\n")

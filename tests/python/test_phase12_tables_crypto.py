@@ -1,9 +1,9 @@
-import rupdf
-from rupdf import Point, Rect
+import pdfrune
+from pdfrune import Point, Rect
 
 
 def test_find_tables_extraction_and_markdown():
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=612.0, height=792.0)
 
     # Normal paragraph before the table
@@ -50,7 +50,7 @@ def test_find_tables_extraction_and_markdown():
 
 
 def test_real_pdf_rc4_encryption_and_decryption_roundtrip():
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=612.0, height=792.0)
     page.insert_text(
         Point(72.0, 100.0),
@@ -68,7 +68,7 @@ def test_real_pdf_rc4_encryption_and_decryption_roundtrip():
     assert b"Confidential Merger Blueprint" not in encrypted_bytes
 
     # Open the encrypted PDF
-    with rupdf.open(encrypted_bytes) as enc_doc:
+    with pdfrune.open(encrypted_bytes) as enc_doc:
         assert enc_doc.is_encrypted is True
         assert enc_doc.needs_pass is True
 

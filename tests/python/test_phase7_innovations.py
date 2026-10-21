@@ -1,15 +1,15 @@
 import pathlib
-import rupdf
-from rupdf import Point, Rect
+import pdfrune
+from pdfrune import Point, Rect
 
 
-def build_structured_doc() -> rupdf.Document:
-    doc = rupdf.open()
+def build_structured_doc() -> pdfrune.Document:
+    doc = pdfrune.open()
     p1 = doc.new_page(width=612.0, height=792.0)
     p1.insert_text(Point(72.0, 72.0), "Architecture Overview", fontsize=24.0)
     p1.insert_text(
         Point(72.0, 120.0),
-        "rupdf is a memory-safe PDF engine written in Rust.",
+        "pdfrune is a memory-safe PDF engine written in Rust.",
         fontsize=12.0,
     )
     p1.insert_text(Point(72.0, 160.0), "Key Capabilities", fontsize=18.0)
@@ -82,27 +82,27 @@ def test_simd_and_regex_document_search():
 
 def test_batch_extract_and_batch_render(tmp_path: pathlib.Path):
     d1 = build_structured_doc()
-    d2 = rupdf.open()
+    d2 = pdfrune.open()
     p = d2.new_page()
     p.insert_text(Point(72.0, 100.0), "Second batch document content", fontsize=14.0)
 
     p1_path = tmp_path / "b1.pdf"
     d1.save(str(p1_path))
 
-    texts = rupdf.batch_extract([str(p1_path), d2.to_bytes()])
+    texts = pdfrune.batch_extract([str(p1_path), d2.to_bytes()])
     assert len(texts) == 2
     assert "Architecture Overview" in texts[0]
     assert "Second batch document content" in texts[1]
 
-    pixmaps = rupdf.batch_render(d1.to_bytes(), dpi=72.0)
+    pixmaps = pdfrune.batch_render(d1.to_bytes(), dpi=72.0)
     assert len(pixmaps) == 2
     assert pixmaps[0].width == 612
     assert pixmaps[1].height == 792
 
 
 def test_fitz_compatibility_shim():
-    import rupdf.fitz as fitz
-    from rupdf.compat import fitz as fitz2
+    import pdfrune.fitz as fitz
+    from pdfrune.compat import fitz as fitz2
 
     assert fitz is fitz2
     doc = build_structured_doc()

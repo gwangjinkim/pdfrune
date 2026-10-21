@@ -9,10 +9,10 @@ pdf_merge(files, output = NULL)
 \arguments{
 \item{files}{A character vector of PDF file paths or a list of raw vectors.}
 
-\item{output}{Optional file path to write the merged PDF. If `NULL`, returns a `rupdf_document`.}
+\item{output}{Optional file path to write the merged PDF. If `NULL`, returns a `pdfrune_document`.}
 }
 \value{
-If `output` is `NULL`, a merged `rupdf_document`. Otherwise, `output` path (invisibly).
+If `output` is `NULL`, a merged `pdfrune_document`. Otherwise, `output` path (invisibly).
 }
 \description{
 Merge Multiple PDF Files into One Document

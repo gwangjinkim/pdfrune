@@ -7,7 +7,7 @@
 pdf_new_page(doc, pno = -1L, width = 612, height = 792)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{pno}{1-based page position to insert at (`-1L` appends to the end). Default is `-1L`.}
 

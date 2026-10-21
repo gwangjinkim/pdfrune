@@ -13,7 +13,7 @@ pdf_to_bytes(
 )
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{deflate}{Logical; whether to compress streams using FlateDecode. Default is `TRUE`.}
 

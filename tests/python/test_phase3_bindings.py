@@ -1,7 +1,7 @@
 import pathlib
 import pytest
-import rupdf
-from rupdf import Document, Matrix, Page, Point, Rect
+import pdfrune
+from pdfrune import Document, Matrix, Page, Point, Rect
 
 
 SAMPLE_PDF_BYTES = (
@@ -58,7 +58,7 @@ def test_document_open_bytes_and_context_manager(tmp_path: pathlib.Path):
     pdf_file.write_bytes(SAMPLE_PDF_BYTES)
 
     # Open from path
-    with rupdf.open(str(pdf_file)) as doc:
+    with pdfrune.open(str(pdf_file)) as doc:
         assert isinstance(doc, Document)
         assert not doc.is_closed
         assert doc.page_count == 2
@@ -97,7 +97,7 @@ def test_document_open_bytes_and_context_manager(tmp_path: pathlib.Path):
 
 
 def test_document_open_from_memory_and_mutate_metadata():
-    doc = rupdf.open(stream=SAMPLE_PDF_BYTES)
+    doc = pdfrune.open(stream=SAMPLE_PDF_BYTES)
     assert len(doc) == 2
     doc.set_metadata({"title": "Updated Title", "author": "Rust Engine"})
     assert doc.metadata["title"] == "Updated Title"

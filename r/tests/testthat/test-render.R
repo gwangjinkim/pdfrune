@@ -6,7 +6,7 @@ test_that("Page rendering to RGBA pixmap and SVG work", {
 
   # Render to RGBA pixmap at 72 DPI
   pix <- pdf_render(doc, 1L, dpi = 72.0)
-  expect_s3_class(pix, "rupdf_pixmap")
+  expect_s3_class(pix, "pdfrune_pixmap")
   expect_equal(pix$width, 612L)
   expect_equal(pix$height, 792L)
   expect_equal(length(pix$bytes), 612L * 792L * 4L)

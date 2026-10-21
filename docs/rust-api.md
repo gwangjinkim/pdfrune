@@ -1,14 +1,14 @@
-# Rust Crate Reference (`rupdf-core`)
+# Rust Crate Reference (`pdfrune`)
 
-`rupdf-core` is a pure, 100% safe Rust crate with zero Python or C/C++ dependencies. Every feature exposed in the Python `rupdf` library is implemented directly in `rupdf-core`.
+`pdfrune` is a pure, 100% safe Rust crate with zero Python or C/C++ dependencies. Every feature exposed in the Python `pdfrune` library is implemented directly in `pdfrune`.
 
 ---
 
-## Adding `rupdf-core` to Your Rust Project
+## Adding `pdfrune` to Your Rust Project
 
 ```toml
 [dependencies]
-rupdf-core = { path = "crates/rupdf-core" }
+pdfrune = { path = "crates/pdfrune" }
 ```
 
 ---
@@ -17,16 +17,16 @@ rupdf-core = { path = "crates/rupdf-core" }
 
 | Module / Type | Description |
 | :--- | :--- |
-| `rupdf_core::Document` | High-level PDF document handle (`open`, `from_bytes`, `new`, page tree, mutation, encryption, rendering). |
-| `rupdf_core::PageInfo` | Page dimensions, `/MediaBox`, `/CropBox`, `/BleedBox`, `/TrimBox`, `/ArtBox`, and rotation. |
-| `rupdf_core::Rect`, `Point`, `Matrix` | 2D geometry primitives and affine transformations. |
-| `rupdf_core::Pixmap` | RGBA8888 pixel buffer with PNG and PPM encoders. |
-| `rupdf_core::DetectedTable` | Table structure detector (`rows`, `bbox`, `extract`, `to_markdown`, `to_dicts`). |
-| `rupdf_core::TocEntry`, `LinkInfo`, `LinkKind` | Hierarchical `/Outlines` bookmarks and `/Link` destinations. |
-| `rupdf_core::AnnotInfo`, `WidgetInfo` | PDF annotations, redactions, and interactive `/AcroForm` widgets. |
-| `rupdf_core::PageImageInfo`, `ExtractedImage` | Embedded `/Image` XObject metadata and decoded image buffers. |
-| `rupdf_core::RagChunk` | Semantic text chunk with page number, section heading, and bounding box coordinates. |
-| `rupdf_core::parser::*` | Low-level SIMD byte lexer, PDF DOM (`PdfObject`, `PdfDict`, `PdfStream`), XREF parser/repair, and stream filters. |
+| `pdfrune::Document` | High-level PDF document handle (`open`, `from_bytes`, `new`, page tree, mutation, encryption, rendering). |
+| `pdfrune::PageInfo` | Page dimensions, `/MediaBox`, `/CropBox`, `/BleedBox`, `/TrimBox`, `/ArtBox`, and rotation. |
+| `pdfrune::Rect`, `Point`, `Matrix` | 2D geometry primitives and affine transformations. |
+| `pdfrune::Pixmap` | RGBA8888 pixel buffer with PNG and PPM encoders. |
+| `pdfrune::DetectedTable` | Table structure detector (`rows`, `bbox`, `extract`, `to_markdown`, `to_dicts`). |
+| `pdfrune::TocEntry`, `LinkInfo`, `LinkKind` | Hierarchical `/Outlines` bookmarks and `/Link` destinations. |
+| `pdfrune::AnnotInfo`, `WidgetInfo` | PDF annotations, redactions, and interactive `/AcroForm` widgets. |
+| `pdfrune::PageImageInfo`, `ExtractedImage` | Embedded `/Image` XObject metadata and decoded image buffers. |
+| `pdfrune::RagChunk` | Semantic text chunk with page number, section heading, and bounding box coordinates. |
+| `pdfrune::parser::*` | Low-level SIMD byte lexer, PDF DOM (`PdfObject`, `PdfDict`, `PdfStream`), XREF parser/repair, and stream filters. |
 
 ---
 
@@ -35,9 +35,9 @@ rupdf-core = { path = "crates/rupdf-core" }
 ### 1. Parsing & Repairing PDFs
 
 ```rust
-use rupdf_core::Document;
+use pdfrune::Document;
 
-fn inspect_pdf(path: &str) -> rupdf_core::Result<()> {
+fn inspect_pdf(path: &str) -> pdfrune::Result<()> {
     // Automatically repairs broken xref tables if needed
     let doc = Document::open(path)?;
     println!("Pages: {}", doc.page_count());
@@ -54,9 +54,9 @@ fn inspect_pdf(path: &str) -> rupdf_core::Result<()> {
 ### 2. Creating Pages, Vector Graphics, Text & Images
 
 ```rust
-use rupdf_core::{Document, Point, Rect};
+use pdfrune::{Document, Point, Rect};
 
-fn create_invoice() -> rupdf_core::Result<Vec<u8>> {
+fn create_invoice() -> pdfrune::Result<Vec<u8>> {
     let mut doc = Document::new();
     doc.new_page(None, 612.0, 792.0)?;
 
@@ -77,9 +77,9 @@ fn create_invoice() -> rupdf_core::Result<Vec<u8>> {
 ### 3. Table Detection, Markdown & RAG Chunks
 
 ```rust
-use rupdf_core::Document;
+use pdfrune::Document;
 
-fn analyze_layout(doc: &Document) -> rupdf_core::Result<()> {
+fn analyze_layout(doc: &Document) -> pdfrune::Result<()> {
     // Detect tables on page 0
     for table in doc.find_page_tables(0)? {
         println!("Table ({}x{}):\n{}", table.row_count(), table.col_count(), table.to_markdown());
@@ -102,9 +102,9 @@ fn analyze_layout(doc: &Document) -> rupdf_core::Result<()> {
 ### 4. True Content-Stream Redaction & RC4-128 Encryption
 
 ```rust
-use rupdf_core::{Document, Rect};
+use pdfrune::{Document, Rect};
 
-fn redact_and_encrypt(mut doc: Document) -> rupdf_core::Result<Vec<u8>> {
+fn redact_and_encrypt(mut doc: Document) -> pdfrune::Result<Vec<u8>> {
     // Add a redaction annotation over sensitive coordinates
     doc.add_page_annot(
         0,

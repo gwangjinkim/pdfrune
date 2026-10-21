@@ -1,4 +1,4 @@
-Package: rupdf
+Package: pdfrune
 Title: Ultra-Fast, Memory-Safe, Permissive PDF Engine
 Version: 0.1.0
 Authors@R: person("Gwang-Jin", "Kim", email = "gwang.jin.kim.phd@gmail.com", role = c("aut", "cre"))
@@ -13,8 +13,8 @@ Description: Clean-room, high-performance, memory-safe, and permissively-license
     standard encryption. Built strictly against open ISO 32000 specifications
     under MIT or Apache-2.0 licenses with zero 'AGPL' restrictions.
 License: MIT + file LICENSE | Apache License 2.0
-URL: https://github.com/gwangjinkim/rupdf
-BugReports: https://github.com/gwangjinkim/rupdf/issues
+URL: https://github.com/gwangjinkim/pdfrune
+BugReports: https://github.com/gwangjinkim/pdfrune/issues
 Depends:
     R (>= 4.0.0)
 Imports:

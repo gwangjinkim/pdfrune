@@ -2,10 +2,10 @@
 #'
 #' Rasterizes a PDF page at the specified resolution (DPI) into an RGBA8888 pixel buffer.
 #'
-#' @param doc A `rupdf_document` object.
+#' @param doc A `pdfrune_document` object.
 #' @param page 1-based page index. Default is `1L`.
 #' @param dpi Resolution in dots per inch. Default is `72.0`.
-#' @return An object of class `rupdf_pixmap`.
+#' @return An object of class `pdfrune_pixmap`.
 #' @export
 #' @examples
 #' doc <- pdf_new()
@@ -13,9 +13,9 @@
 #' pix <- pdf_render(doc, 1L, dpi = 72)
 #' pix$width > 0
 pdf_render <- function(doc, page = 1L, dpi = 72.0) {
-  stopifnot(inherits(doc, "rupdf_document"))
+  stopifnot(inherits(doc, "pdfrune_document"))
   stopifnot(page >= 1L)
-  res <- .Call(C_rupdf_render_page_rgba, doc$ptr, as.integer(page - 1L), as.numeric(dpi))
+  res <- .Call(C_pdfrune_render_page_rgba, doc$ptr, as.integer(page - 1L), as.numeric(dpi))
 
   pix <- structure(
     list(
@@ -27,11 +27,11 @@ pdf_render <- function(doc, page = 1L, dpi = 72.0) {
       page = as.integer(page - 1L),
       dpi = as.numeric(dpi)
     ),
-    class = "rupdf_pixmap"
+    class = "pdfrune_pixmap"
   )
 
   pix$to_png <- function() {
-    .Call(C_rupdf_render_page_png, doc$ptr, as.integer(page - 1L), as.numeric(dpi))
+    .Call(C_pdfrune_render_page_png, doc$ptr, as.integer(page - 1L), as.numeric(dpi))
   }
 
   pix$save <- function(filename) {
@@ -45,7 +45,7 @@ pdf_render <- function(doc, page = 1L, dpi = 72.0) {
 
 #' Export a PDF Page as Vector SVG
 #'
-#' @param doc A `rupdf_document` object.
+#' @param doc A `pdfrune_document` object.
 #' @param page 1-based page index. Default is `1L`.
 #' @return A character string containing standalone SVG XML.
 #' @export
@@ -55,17 +55,17 @@ pdf_render <- function(doc, page = 1L, dpi = 72.0) {
 #' svg <- pdf_to_svg(doc, 1L)
 #' nchar(svg) > 0
 pdf_to_svg <- function(doc, page = 1L) {
-  stopifnot(inherits(doc, "rupdf_document"))
+  stopifnot(inherits(doc, "pdfrune_document"))
   stopifnot(page >= 1L)
-  .Call(C_rupdf_page_to_svg, doc$ptr, as.integer(page - 1L))
+  .Call(C_pdfrune_page_to_svg, doc$ptr, as.integer(page - 1L))
 }
 
-#' Print Method for rupdf Pixmap
+#' Print Method for pdfrune Pixmap
 #'
-#' @param x A `rupdf_pixmap` object.
+#' @param x A `pdfrune_pixmap` object.
 #' @param ... Additional arguments (unused).
 #' @export
-print.rupdf_pixmap <- function(x, ...) {
-  cat("<rupdf_pixmap: ", x$width, "x", x$height, " RGBA, ", length(x$bytes), " bytes>\n", sep = "")
+print.pdfrune_pixmap <- function(x, ...) {
+  cat("<pdfrune_pixmap: ", x$width, "x", x$height, " RGBA, ", length(x$bytes), " bytes>\n", sep = "")
   invisible(x)
 }

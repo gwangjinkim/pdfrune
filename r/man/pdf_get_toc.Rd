@@ -7,7 +7,7 @@
 pdf_get_toc(doc)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 }
 \value{
 A data.frame with columns `level` (integer hierarchy level), `title` (character bookmark title), and `page` (1-based destination page).

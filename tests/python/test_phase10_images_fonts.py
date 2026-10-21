@@ -1,11 +1,11 @@
 import pathlib
-import rupdf
-from rupdf import Pixmap, Rect
+import pdfrune
+from pdfrune import Pixmap, Rect
 
 
 def create_solid_red_png() -> bytes:
     # Render a small 20x16 page with a solid red rectangle and export to PNG bytes
-    doc = rupdf.open()
+    doc = pdfrune.open()
     p = doc.new_page(width=20.0, height=16.0)
     p.draw_rect(Rect(0.0, 0.0, 20.0, 16.0), color=None, fill=(1.0, 0.0, 0.0))
     pix = p.render(dpi=72.0)
@@ -17,7 +17,7 @@ def test_insert_get_and_extract_images(tmp_path: pathlib.Path):
     img_path = tmp_path / "red.png"
     img_path.write_bytes(png_bytes)
 
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=200.0, height=200.0)
     assert page.get_images() == []
 
@@ -49,7 +49,7 @@ def test_insert_get_and_extract_images(tmp_path: pathlib.Path):
 
     # Roundtrip serialize & reopen
     raw = doc.to_bytes()
-    with rupdf.open(raw) as reopened:
+    with pdfrune.open(raw) as reopened:
         r_imgs = reopened[0].get_images()
         assert len(r_imgs) == 2
         r_ext = reopened.extract_image(r_imgs[0][0])
@@ -59,7 +59,7 @@ def test_insert_get_and_extract_images(tmp_path: pathlib.Path):
 
 def test_render_embedded_image_xobject():
     png_bytes = create_solid_red_png()
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=100.0, height=100.0)
     # Place the solid red image at Rect(10, 10, 60, 60)
     page.insert_image(Rect(10.0, 10.0, 60.0, 60.0), stream=png_bytes)

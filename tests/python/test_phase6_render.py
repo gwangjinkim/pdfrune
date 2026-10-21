@@ -1,10 +1,10 @@
 import pathlib
-import rupdf
-from rupdf import Pixmap, Point, Rect
+import pdfrune
+from pdfrune import Pixmap, Point, Rect
 
 
 def test_render_pixmap_dimensions_and_pixels(tmp_path: pathlib.Path):
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=200.0, height=100.0)
     # Draw a solid red rectangle from (20, 20) to (80, 60)
     page.draw_rect(
@@ -47,7 +47,7 @@ def test_render_pixmap_dimensions_and_pixels(tmp_path: pathlib.Path):
 
 
 def test_svg_export():
-    doc = rupdf.open()
+    doc = pdfrune.open()
     page = doc.new_page(width=400.0, height=300.0)
     page.draw_rect(Rect(10.0, 10.0, 100.0, 50.0), color=(0.0, 0.5, 1.0), fill=(0.9, 0.9, 0.9))
     page.insert_text(Point(20.0, 100.0), "Vector SVG Output", fontsize=16.0)

@@ -1,0 +1,16 @@
+[package]
+name = "pdfrune-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "C FFI dynamic and static library for pdfrune"
+
+[lib]
+name = "pdfrune_ffi"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+pdfrune = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

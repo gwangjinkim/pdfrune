@@ -7,7 +7,7 @@
 pdf_to_markdown(doc, page = NULL)
 }
 \arguments{
-\item{doc}{A `rupdf_document` object.}
+\item{doc}{A `pdfrune_document` object.}
 
 \item{page}{Optional 1-based page index. If `NULL` (default), converts the full document.}
 }
