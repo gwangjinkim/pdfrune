@@ -6,7 +6,7 @@ use crate::document::Document;
 use crate::error::{PdfruneError, Result};
 use crate::geometry::{Matrix, Point};
 use crate::parser::lexer::{ContentToken, Lexer};
-use crate::parser::object::PdfObject;
+use crate::parser::object::{PdfDictExt, PdfObject};
 use crate::render::pixmap::Pixmap;
 use crate::text::extractor::extract_page_spans;
 
@@ -68,6 +68,9 @@ pub fn render_page(doc: &Document, page_index: usize, dpi: f64) -> Result<Pixmap
         paint.anti_alias = true;
 
         for span in spans {
+            if matches!(span.render_mode, 3 | 7) {
+                continue;
+            }
             for (ch, char_rect) in &span.chars {
                 if ch.is_whitespace() {
                     continue;
@@ -326,16 +329,25 @@ fn render_vector_ops(
                             {
                                 if let Some(xobj) = xobjects.get(name) {
                                     if let Some(stm) = doc.resolve(xobj).as_stream() {
-                                        if let Some((img_w, img_h, rgba)) =
-                                            crate::render::image::decode_image_xobject_to_rgba(stm)
-                                        {
-                                            let (sx0, sy0) =
-                                                to_screen(Point::new(0.0, 0.0), &gs.ctm);
-                                            let (sx1, sy1) =
+                                        if stm.dict.get_name_str(b"Subtype") == Some("Image") {
+                                            let (img_w, img_h, rgba) =
+                                                crate::render::image::decode_image_xobject(
+                                                    doc, stm,
+                                                )?;
+                                            let top_left = to_screen(Point::new(0.0, 1.0), &gs.ctm);
+                                            let top_right =
                                                 to_screen(Point::new(1.0, 1.0), &gs.ctm);
-                                            blit_rgba_scaled(
-                                                skia_pix, &rgba, img_w, img_h, sx0, sy0, sx1, sy1,
-                                            );
+                                            let bottom_left =
+                                                to_screen(Point::new(0.0, 0.0), &gs.ctm);
+                                            blit_rgba_transformed(
+                                                skia_pix,
+                                                rgba,
+                                                img_w,
+                                                img_h,
+                                                top_left,
+                                                top_right,
+                                                bottom_left,
+                                            )?;
                                         }
                                     }
                                 }
@@ -352,43 +364,46 @@ fn render_vector_ops(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-fn blit_rgba_scaled(
+fn blit_rgba_transformed(
     dst: &mut SkiaPixmap,
-    src_rgba: &[u8],
-    src_w: u32,
-    src_h: u32,
-    sx0: f32,
-    sy0: f32,
-    sx1: f32,
-    sy1: f32,
-) {
-    let left = sx0.min(sx1).floor().max(0.0) as u32;
-    let right = sx0.max(sx1).ceil().min(dst.width() as f32) as u32;
-    let top = sy0.min(sy1).floor().max(0.0) as u32;
-    let bottom = sy0.max(sy1).ceil().min(dst.height() as f32) as u32;
-    if right <= left || bottom <= top || src_w == 0 || src_h == 0 {
-        return;
-    }
-
-    let span_w = (right - left) as f32;
-    let span_h = (bottom - top) as f32;
-    let dst_w = dst.width() as usize;
-    let dst_bytes = dst.data_mut();
-
-    for py in top..bottom {
-        let v = ((py - top) as f32 / span_h).clamp(0.0, 0.9999);
-        let sy = ((v * (src_h as f32)) as u32).min(src_h - 1) as usize;
-        for px in left..right {
-            let u = ((px - left) as f32 / span_w).clamp(0.0, 0.9999);
-            let sx = ((u * (src_w as f32)) as u32).min(src_w - 1) as usize;
-            let src_idx = (sy * (src_w as usize) + sx) * 4;
-            let dst_idx = ((py as usize) * dst_w + (px as usize)) * 4;
-            if src_idx + 4 <= src_rgba.len() && dst_idx + 4 <= dst_bytes.len() {
-                dst_bytes[dst_idx..dst_idx + 4].copy_from_slice(&src_rgba[src_idx..src_idx + 4]);
-            }
+    mut rgba: Vec<u8>,
+    w: u32,
+    h: u32,
+    top_left: (f32, f32),
+    top_right: (f32, f32),
+    bottom_left: (f32, f32),
+) -> Result<()> {
+    // tiny-skia requires premultiplied RGBA and handles affine placement and
+    // source-over compositing (essential for MRC foreground soft masks).
+    for px in rgba.chunks_exact_mut(4) {
+        for c in 0..3 {
+            px[c] = ((px[c] as u16 * px[3] as u16 + 127) / 255) as u8;
         }
     }
+    let size = tiny_skia::IntSize::from_wh(w, h)
+        .ok_or_else(|| PdfruneError::RenderError("Invalid image size".into()))?;
+    let source = SkiaPixmap::from_vec(rgba, size)
+        .ok_or_else(|| PdfruneError::RenderError("Invalid image buffer".into()))?;
+    let transform = Transform::from_row(
+        (top_right.0 - top_left.0) / w as f32,
+        (top_right.1 - top_left.1) / w as f32,
+        (bottom_left.0 - top_left.0) / h as f32,
+        (bottom_left.1 - top_left.1) / h as f32,
+        top_left.0,
+        top_left.1,
+    );
+    dst.draw_pixmap(
+        0,
+        0,
+        source.as_ref(),
+        &tiny_skia::PixmapPaint {
+            quality: tiny_skia::FilterQuality::Bilinear,
+            ..Default::default()
+        },
+        transform,
+        None,
+    );
+    Ok(())
 }
 
 fn find_first_embedded_ttf(

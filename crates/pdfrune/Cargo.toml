@@ -2,6 +2,7 @@
 name = "pdfrune"
 version.workspace = true
 edition.workspace = true
+rust-version = "1.92"
 license.workspace = true
 authors.workspace = true
 description = "Clean-room, high-performance, memory-safe PDF engine in pure Rust"
@@ -19,3 +20,6 @@ lopdf = { workspace = true }
 tiny-skia = { workspace = true }
 ab_glyph = { workspace = true }
 png = { workspace = true }
+jpeg-decoder = "0.3"
+hayro-jpeg2000 = { version = "0.4.1", default-features = false, features = ["std"] }
+hayro-jbig2 = { version = "0.3", default-features = false }

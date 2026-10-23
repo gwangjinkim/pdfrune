@@ -20,6 +20,8 @@ pub struct PositionedSpan {
     pub font_size: f64,
     /// Per-character bounding boxes in top-down page coordinates.
     pub chars: Vec<(char, Rect)>,
+    /// PDF text rendering mode; 3 is invisible OCR, 7 is clip-only.
+    pub render_mode: u8,
 }
 
 #[derive(Debug, Clone)]
@@ -32,6 +34,7 @@ struct GraphicsState {
     horiz_scale: f64,
     leading: f64,
     text_rise: f64,
+    render_mode: u8,
 }
 
 impl Default for GraphicsState {
@@ -45,6 +48,7 @@ impl Default for GraphicsState {
             horiz_scale: 100.0,
             leading: 0.0,
             text_rise: 0.0,
+            render_mode: 0,
         }
     }
 }
@@ -185,6 +189,13 @@ fn interpret_stream(
                     b"TL" => {
                         if let Some(v) = operands.last().and_then(PdfObject::as_f64) {
                             gs.leading = v;
+                        }
+                    }
+                    b"Tr" => {
+                        if let Some(v) = operands.last().and_then(PdfObject::as_i64) {
+                            if (0..=7).contains(&v) {
+                                gs.render_mode = v as u8;
+                            }
                         }
                     }
                     b"Ts" => {
@@ -481,6 +492,7 @@ fn emit_text_bytes(
                 font_name: font_label,
                 font_size: effective_font_size,
                 chars,
+                render_mode: gs.render_mode,
             });
         }
     }

@@ -37,6 +37,9 @@ pub fn render_page_svg(doc: &Document, page_index: usize) -> Result<String> {
     // Emit positioned text spans
     if let Ok(spans) = extract_page_spans(doc, page_index) {
         for span in spans {
+            if matches!(span.render_mode, 3 | 7) {
+                continue;
+            }
             let escaped = escape_xml(&span.text);
             let x = span.bbox.x0;
             let y = span.bbox.y1 - span.font_size * 0.15;

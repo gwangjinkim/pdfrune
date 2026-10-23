@@ -143,7 +143,7 @@ pub fn extract_image(doc: &Document, xref: u32) -> Result<ExtractedImage> {
         });
     }
 
-    if let Some((w, h, rgba)) = decode_image_xobject_to_rgba(stm) {
+    if let Ok((w, h, rgba)) = decode_image_xobject(doc, stm) {
         let mut pix = Pixmap::new_white(w, h);
         pix.data = rgba;
         let png_bytes = pix.to_png()?;
@@ -162,36 +162,293 @@ pub fn extract_image(doc: &Document, xref: u32) -> Result<ExtractedImage> {
     )))
 }
 
-/// Decodes a PDF `/Image` XObject stream into RGBA8888 pixel bytes `(width, height, rgba_bytes)`.
+/// Decode an image without document-level references. Kept for API compatibility.
+/// Rendering uses the checked, document-aware decoder so errors are not hidden.
 pub fn decode_image_xobject_to_rgba(stm: &PdfStream) -> Option<(u32, u32, Vec<u8>)> {
-    let width = stm.dict.get_int(b"Width")?.max(1) as u32;
-    let height = stm.dict.get_int(b"Height")?.max(1) as u32;
-    let cs_name = stm.dict.get_name_str(b"ColorSpace").unwrap_or("DeviceRGB");
-    let raw = stm.decode_data().ok()?;
-    let pixel_count = (width as usize) * (height as usize);
-    let mut rgba = Vec::with_capacity(pixel_count * 4);
+    decode_image_inner(None, stm, 0).ok()
+}
 
-    match cs_name {
-        "DeviceGray" | "G" => {
-            if raw.len() < pixel_count {
-                return None;
-            }
-            for &g in &raw[..pixel_count] {
-                rgba.extend_from_slice(&[g, g, g, 255]);
+/// Decode raster samples and the optional document-referenced soft mask.
+pub fn decode_image_xobject(doc: &Document, stm: &PdfStream) -> Result<(u32, u32, Vec<u8>)> {
+    decode_image_inner(Some(doc), stm, 0)
+}
+
+fn image_error(message: impl Into<String>) -> PdfruneError {
+    PdfruneError::RenderError(message.into())
+}
+
+fn checked_pixels(width: u32, height: u32) -> Result<usize> {
+    let n = (width as usize)
+        .checked_mul(height as usize)
+        .filter(|n| *n > 0 && *n <= 64_000_000)
+        .ok_or_else(|| {
+            image_error("Image exceeds the 64-million-pixel decode limit or has invalid dimensions")
+        })?;
+    Ok(n)
+}
+
+fn image_filters(stm: &PdfStream) -> Result<Vec<&[u8]>> {
+    match stm.dict.get(b"Filter".as_slice()) {
+        None => Ok(vec![]),
+        Some(PdfObject::Name(name)) => Ok(vec![name]),
+        Some(PdfObject::Array(arr)) => arr
+            .iter()
+            .map(|item| {
+                item.as_name()
+                    .ok_or_else(|| image_error("Invalid image filter array"))
+            })
+            .collect(),
+        _ => Err(image_error("Invalid image filter")),
+    }
+}
+
+fn decode_image_inner(
+    doc: Option<&Document>,
+    stm: &PdfStream,
+    depth: usize,
+) -> Result<(u32, u32, Vec<u8>)> {
+    if depth > 8 {
+        return Err(image_error(
+            "Image soft-mask reference cycle or excessive depth",
+        ));
+    }
+    let width = u32::try_from(
+        stm.dict
+            .get_int(b"Width")
+            .ok_or_else(|| image_error("Missing image width"))?,
+    )
+    .map_err(|_| image_error("Invalid image width"))?;
+    let height = u32::try_from(
+        stm.dict
+            .get_int(b"Height")
+            .ok_or_else(|| image_error("Missing image height"))?,
+    )
+    .map_err(|_| image_error("Invalid image height"))?;
+    let count = checked_pixels(width, height)?;
+    let filters = image_filters(stm)?;
+    let codec = filters.last().copied().unwrap_or(b"");
+    let encoded = matches!(codec, b"DCTDecode" | b"DCT" | b"JPXDecode" | b"JBIG2Decode");
+    let data = if encoded {
+        // Decode transport filters before handing the final codestream to its
+        // image codec. Do not treat compressed JPEG/JPX bytes as pixel samples.
+        let mut prefix = stm.clone();
+        prefix.dict.remove(b"Filter".as_slice());
+        prefix.dict.remove(b"DecodeParms".as_slice());
+        if filters.len() > 1 {
+            prefix.dict.insert(
+                b"Filter".to_vec(),
+                PdfObject::Array(
+                    filters[..filters.len() - 1]
+                        .iter()
+                        .map(|f| PdfObject::Name(f.to_vec()))
+                        .collect(),
+                ),
+            );
+            if let Some(PdfObject::Array(parms)) = stm.dict.get(b"DecodeParms".as_slice()) {
+                prefix.dict.insert(
+                    b"DecodeParms".to_vec(),
+                    PdfObject::Array(parms.iter().take(filters.len() - 1).cloned().collect()),
+                );
             }
         }
-        _ => {
-            if raw.len() >= pixel_count * 3 {
-                for chunk in raw[..pixel_count * 3].chunks_exact(3) {
-                    rgba.extend_from_slice(&[chunk[0], chunk[1], chunk[2], 255]);
-                }
+        prefix.decode_data()?
+    } else {
+        stm.decode_data()?
+    };
+    let (samples, channels, alpha) = match codec {
+        b"DCTDecode" | b"DCT" => {
+            let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(&data));
+            decoder
+                .read_info()
+                .map_err(|e| image_error(format!("JPEG header: {e}")))?;
+            let info = decoder
+                .info()
+                .ok_or_else(|| image_error("Missing JPEG info"))?;
+            if (info.width as u32, info.height as u32) != (width, height) {
+                return Err(image_error(
+                    "JPEG dimensions disagree with image dictionary",
+                ));
+            }
+            let n = match info.pixel_format {
+                jpeg_decoder::PixelFormat::L8 => 1,
+                jpeg_decoder::PixelFormat::RGB24 => 3,
+                jpeg_decoder::PixelFormat::CMYK32 => 4,
+                _ => return Err(image_error("Unsupported JPEG sample format")),
+            };
+            (
+                decoder
+                    .decode()
+                    .map_err(|e| image_error(format!("JPEG decode: {e}")))?,
+                n,
+                false,
+            )
+        }
+        b"JPXDecode" => {
+            let image =
+                hayro_jpeg2000::Image::new(&data, &hayro_jpeg2000::DecodeSettings::default())
+                    .map_err(|e| image_error(format!("JPEG2000 header: {e}")))?;
+            if (image.width(), image.height()) != (width, height) {
+                return Err(image_error(
+                    "JPEG2000 dimensions disagree with image dictionary",
+                ));
+            }
+            let channels = image.color_space().num_channels() as usize;
+            let has_alpha = image.has_alpha();
+            let mut ctx = hayro_jpeg2000::DecoderContext::default();
+            let decoded = image
+                .decode(&mut ctx)
+                .map_err(|e| image_error(format!("JPEG2000 decode: {e}")))?;
+            (decoded.data_u8(), channels, has_alpha)
+        }
+        b"JBIG2Decode" => {
+            let parms = match stm.dict.get(b"DecodeParms".as_slice()) {
+                Some(PdfObject::Array(arr)) => arr.last().and_then(PdfObject::as_dict),
+                Some(PdfObject::Dict(d)) => Some(d),
+                _ => None,
+            };
+            let global_stream = parms.and_then(|p| p.get(b"JBIG2Globals".as_slice()));
+            let globals = if let Some(obj) = global_stream {
+                let stream = doc
+                    .ok_or_else(|| image_error("JBIG2 globals require document context"))?
+                    .resolve(obj)
+                    .as_stream()
+                    .ok_or_else(|| image_error("Invalid JBIG2 globals"))?;
+                Some(stream.decode_data()?)
             } else {
-                return None;
+                None
+            };
+            let image = hayro_jbig2::Image::new_embedded(&data, globals.as_deref())
+                .map_err(|e| image_error(format!("JBIG2 header: {e}")))?;
+            if (image.width(), image.height()) != (width, height) {
+                return Err(image_error(
+                    "JBIG2 dimensions disagree with image dictionary",
+                ));
+            }
+            struct Gray(Vec<u8>);
+            impl hayro_jbig2::Decoder for Gray {
+                fn push_pixel(&mut self, black: bool) {
+                    self.0.push(if black { 0 } else { 255 });
+                }
+                fn push_pixel_chunk(&mut self, black: bool, n: u32) {
+                    self.0.extend(std::iter::repeat_n(
+                        if black { 0 } else { 255 },
+                        n as usize * 8,
+                    ));
+                }
+                fn next_line(&mut self) {}
+            }
+            let mut gray = Gray(Vec::with_capacity(count));
+            image
+                .decode(&mut gray)
+                .map_err(|e| image_error(format!("JBIG2 decode: {e}")))?;
+            (gray.0, 1, false)
+        }
+        _ => {
+            let cs = stm.dict.get_name_str(b"ColorSpace").unwrap_or("DeviceRGB");
+            let channels = match cs {
+                "DeviceGray" | "G" => 1,
+                "DeviceRGB" | "RGB" => 3,
+                "DeviceCMYK" | "CMYK" => 4,
+                _ => return Err(image_error(format!("Unsupported image color space {cs}"))),
+            };
+            let bits = stm.dict.get_int(b"BitsPerComponent").unwrap_or(8);
+            if !matches!(bits, 1 | 2 | 4 | 8 | 16) {
+                return Err(image_error("Unsupported image bit depth"));
+            }
+            let bits = bits as usize;
+            let row_bits = width as usize * channels * bits;
+            let row_bytes = row_bits.div_ceil(8);
+            if data.len() < row_bytes * height as usize {
+                return Err(image_error("Truncated image sample data"));
+            }
+            let mut samples = Vec::with_capacity(count * channels);
+            for row in data.chunks_exact(row_bytes).take(height as usize) {
+                for index in 0..width as usize * channels {
+                    let bit = index * bits;
+                    let v = if bits == 16 {
+                        u16::from_be_bytes([row[bit / 8], row[bit / 8 + 1]]) as u32
+                    } else {
+                        ((row[bit / 8] >> (8 - bits - bit % 8)) & ((1u16 << bits) - 1) as u8) as u32
+                    };
+                    samples
+                        .push(((v * 255 + ((1u32 << bits) - 1) / 2) / ((1u32 << bits) - 1)) as u8);
+                }
+            }
+            (samples, channels, false)
+        }
+    };
+    if !matches!(channels, 1 | 3 | 4) {
+        return Err(image_error("Unsupported decoded image channel count"));
+    }
+    let stride = channels + usize::from(alpha);
+    if samples.len() != count * stride {
+        return Err(image_error("Decoded image sample count mismatch"));
+    }
+    let decode = stm
+        .dict
+        .get(b"Decode".as_slice())
+        .and_then(PdfObject::as_array);
+    let mut rgba = Vec::with_capacity(count * 4);
+    for sample in samples.chunks_exact(stride) {
+        let mut color = [0u8; 4];
+        color[..channels].copy_from_slice(&sample[..channels]);
+        if codec != b"JPXDecode" {
+            if let Some(decode) = decode {
+                if decode.len() != channels * 2 {
+                    return Err(image_error("Invalid image Decode array"));
+                }
+                for c in 0..channels {
+                    let lo = decode[2 * c]
+                        .as_f64()
+                        .ok_or_else(|| image_error("Invalid Decode value"))?;
+                    let hi = decode[2 * c + 1]
+                        .as_f64()
+                        .ok_or_else(|| image_error("Invalid Decode value"))?;
+                    color[c] = ((lo + (color[c] as f64 / 255.0) * (hi - lo)) * 255.0)
+                        .clamp(0.0, 255.0)
+                        .round() as u8;
+                }
+            }
+        }
+        let rgb = match channels {
+            1 => [color[0]; 3],
+            3 => [color[0], color[1], color[2]],
+            4 => [
+                (((255 - color[0]) as u16 * (255 - color[3]) as u16 + 127) / 255) as u8,
+                (((255 - color[1]) as u16 * (255 - color[3]) as u16 + 127) / 255) as u8,
+                (((255 - color[2]) as u16 * (255 - color[3]) as u16 + 127) / 255) as u8,
+            ],
+            _ => unreachable!(),
+        };
+        rgba.extend_from_slice(&[
+            rgb[0],
+            rgb[1],
+            rgb[2],
+            if alpha { sample[channels] } else { 255 },
+        ]);
+    }
+    if let Some(mask_obj) = stm
+        .dict
+        .get(b"SMask".as_slice())
+        .filter(|m| !matches!(m,PdfObject::Name(n) if n==b"None"))
+    {
+        let doc = doc.ok_or_else(|| image_error("Soft mask requires document context"))?;
+        let mask = doc
+            .resolve(mask_obj)
+            .as_stream()
+            .ok_or_else(|| image_error("Invalid image soft mask"))?;
+        let (mw, mh, mask_rgba) = decode_image_inner(Some(doc), mask, depth + 1)?;
+        for y in 0..height as usize {
+            for x in 0..width as usize {
+                let mx = x * mw as usize / width as usize;
+                let my = y * mh as usize / height as usize;
+                let a = mask_rgba[(my * mw as usize + mx) * 4] as u16;
+                let offset = (y * width as usize + x) * 4 + 3;
+                rgba[offset] = ((rgba[offset] as u16 * a + 127) / 255) as u8;
             }
         }
     }
-
-    Some((width, height, rgba))
+    Ok((width, height, rgba))
 }
 
 /// Inserts an image from PNG bytes onto `page_index` at `rect` (top-down coordinates).
